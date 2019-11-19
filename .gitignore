@@ -38,3 +38,8 @@ build.xml
 nbproject/
 manifest.mf
 defaultShapeletOutput.txt
+/.nb-gradle/
+
+#data
+data/
+results/
