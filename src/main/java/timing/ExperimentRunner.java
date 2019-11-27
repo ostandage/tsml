@@ -1,5 +1,4 @@
 //Critical Difference diagrams
-//File writer
 
 package timing;
 
@@ -8,17 +7,20 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
+
 import timeseriesweka.classifiers.dictionary_based.BOSS;
-import timeseriesweka.classifiers.distance_based.DD_DTW;
-import timeseriesweka.classifiers.distance_based.DTW_kNN;
-import timeseriesweka.classifiers.distance_based.FastDTW;
-import timeseriesweka.classifiers.distance_based.FastDTW_1NN;
-import timeseriesweka.classifiers.distance_based.ProximityForestWrapper;
+import timeseriesweka.classifiers.distance_based.*;
 import timeseriesweka.classifiers.distance_based.elastic_ensemble.DTW1NN;
+import timeseriesweka.classifiers.frequency_based.RISE;
 import timeseriesweka.classifiers.hybrids.HiveCote;
+import timeseriesweka.classifiers.interval_based.TSF;
+import timeseriesweka.classifiers.shapelet_based.ShapeletTransformClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.IBk;
 import weka.core.Instances;
+import weka_extras.classifiers.ensembles.CAWPE;
+import weka_extras.classifiers.ensembles.HIVE_COTE;
 
 /**
  *
@@ -26,8 +28,8 @@ import weka.core.Instances;
  */
 public class ExperimentRunner {
     
-    private static final int NumClassifiers = 10;
-    private static final int NumResamples = 1;
+    private static final int NumClassifiers = 13;
+    private static final int NumResamples = 5;
     
     
     public static void main(String[] args) throws Exception {
@@ -39,41 +41,65 @@ public class ExperimentRunner {
             
             classifiers[0] = new IBk();
             classifiers[1] = new DTW_kNN(1);
-            classifiers[2] = new DTW_kNN(2);
-            classifiers[3] = new DTW1NN();
-            classifiers[4] = new BOSS();
-            classifiers[5] = new DD_DTW();
-            classifiers[6] = new FastDTW();
-            classifiers[7] = new FastDTW_1NN();
-            classifiers[8] = new ProximityForestWrapper();
-            classifiers[9] = new HiveCote(); //HIVE_COTE -- post process previous results.
+            classifiers[2] = new DTW1NN();
+            classifiers[3] = new FastDTW();
+            classifiers[4] = new FastDTW_1NN();
+            classifiers[5] = new ProximityForestWrapper();
+            classifiers[6] = new DD_DTW();
+
+            //Hive-Cote
+            classifiers[7] = new ElasticEnsemble();
+            classifiers[8] = new ShapeletTransformClassifier();
+            classifiers[9] = new RISE();
+            classifiers[10] = new BOSS();
+            classifiers[11] = new TSF();
+
+            Classifier[] hcClassifiers = Arrays.copyOfRange(classifiers, 7,12);
+
+            HIVE_COTE hc = new HIVE_COTE();
+            hc.setupDefaultEnsembleSettings();
+            hc.setClassifiers(hcClassifiers, hc.getClassifierNames(), null);
+            classifiers[12] = hc;
 
 
             String timeStamp = java.time.ZonedDateTime.now().toLocalDateTime().toString();
             timeStamp = timeStamp.replace(':', '-');
             System.out.println(timeStamp + "\n");
+            File path = new File("results/" + timeStamp);
+            path.mkdirs();
 
-            FileWriter csv = new FileWriter("results/timingExperiment-" + timeStamp + ".csv");
+            FileWriter csv = new FileWriter("results/" + timeStamp + "/" + "timing.csv");
+            csv.append("Dataset,Classifier,Average Classify Time,Total Classify Time,Train Time" + "\n");
+            System.out.println("Dataset,Classifier,Average Classify Time,Total Classify Time,Train Time" + "\n");
             
-            
-            //Change this back :)
-            for (int dataset = 6; dataset < 7; dataset++) {
-                for (int classifier = 0; classifier < NumClassifiers; classifier++) {
+            //Change this back to 0
+            for (int dataset = 6; dataset < dataTest.length; dataset++) {
+                //Change this back to 0
+                for (int classifier = 8; classifier < NumClassifiers-1; classifier++) {
                     try {
                         TimingExperiment t = new TimingExperiment(classifiers[classifier], dataTest[dataset], dataTrain[dataset]);
                         ResultWrapper rw = t.runNormalExperiment(NumResamples);
                         cresults[dataset][classifier] = rw.getClassifierResults();
                         tresults[dataset][classifier] = rw.getTimingResults();
 
-                        String output = dataTrain[dataset].relationName() + " - " + classifiers[classifier].getClass().getSimpleName() + "\n" + 
-                                        "Average Classify Time,Total Classify Time,Train Time" + "\n" + 
-                                        TimingExperiment.timingResultArrayToString(tresults[dataset][classifier]) + "\n" + 
-                                        cresults[dataset][classifier][0].writeFullResultsToString();
+
+                        String output = dataTrain[dataset].relationName() + "," + classifiers[classifier].getClass().getSimpleName() + "," +
+                                        TimingExperiment.timingResultArrayToString(tresults[dataset][classifier]) + "\n";
                         System.out.println(output);
                         csv.append(output);
                         csv.flush();
+                        File dir = new File("results/" + timeStamp + "/" + dataTrain[dataset].relationName() + "/" );
+                        dir.mkdirs();
+
+                        //How to handle resamples?
+                        for (int resample = 0; resample < NumResamples; resample++) {
+                            cresults[dataset][classifier][resample].writeFullResultsToFile("results/" + timeStamp + "/" + dataTrain[dataset].relationName() + "/" + classifiers[classifier].getClass().getSimpleName() + "-" + resample + ".csv");
+                        }
+
+
                     } catch (Exception e) {
-                        
+                        System.out.println("Something went wrong :( " + dataTrain[dataset].relationName() + " - " + classifiers[classifier].getClass().getSimpleName());
+                        e.printStackTrace();
                     }
                 }
             }
@@ -124,5 +150,9 @@ public class ExperimentRunner {
                 }
             }
         }   
+    }
+
+    private static void HiveCotePostProcessed() {
+        
     }
 }

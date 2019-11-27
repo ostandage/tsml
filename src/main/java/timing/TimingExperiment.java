@@ -141,8 +141,16 @@ public class TimingExperiment {
     
     public static String timingResultArrayToString(TimingResults[] results) throws Exception{
         String output = "";
+        int i = 0;
         for (TimingResults result : results) {
-            output = output + result + "\n";
+            if (i == 0) {
+                output = output + result + "\n";
+            }
+            else {
+                output = output + ",," + result + "\n";
+            }
+
+            i++;
         }
         return output;
     }
