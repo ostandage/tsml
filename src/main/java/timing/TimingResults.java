@@ -5,6 +5,8 @@
  */
 package timing;
 
+import timeseriesweka.classifiers.TrainAccuracyEstimator;
+
 import java.text.DecimalFormat;
 
 /**
@@ -14,10 +16,12 @@ import java.text.DecimalFormat;
 public class TimingResults {
     private double[] classifyTime;
     private double trainTime;
+    private TrainAccuracyEstimator trainAccuracyEstimator;
     
-    public TimingResults (double[] classifyTime, double trainTime) {
+    public TimingResults (double[] classifyTime, double trainTime, TrainAccuracyEstimator trainAccuracyEstimator) {
         this.classifyTime = classifyTime;
         this.trainTime = trainTime;
+        this.trainAccuracyEstimator = trainAccuracyEstimator;
     }
     
     public double averageTime() {
@@ -35,7 +39,11 @@ public class TimingResults {
     public double[] getTimes() {
         return classifyTime;
     }
-    
+
+    public TrainAccuracyEstimator getTrainAccuracyEstimator() {
+        return trainAccuracyEstimator;
+    }
+
     private double sumArray(double[] data) {
         double sum = 0;
         for (int i = 0; i < data.length; i++) {
@@ -59,7 +67,6 @@ public class TimingResults {
     
     public static TimingResults combineResults(TimingResults[] results) {
         int numSetsPerResult = results[0].getTimes().length;
-        
         double[] times = new double[numSetsPerResult * results.length];
         int arrayPos = 0;
         double averageTrainTime = 0;
@@ -70,7 +77,7 @@ public class TimingResults {
         }
         averageTrainTime = averageTrainTime / results.length;
         
-        return new TimingResults(times, averageTrainTime);
+        return new TimingResults(times, averageTrainTime, results[0].getTrainAccuracyEstimator());
     }
     
 }

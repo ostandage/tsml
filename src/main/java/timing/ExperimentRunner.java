@@ -14,6 +14,7 @@ import timeseriesweka.classifiers.distance_based.*;
 import timeseriesweka.classifiers.distance_based.elastic_ensemble.DTW1NN;
 import timeseriesweka.classifiers.frequency_based.RISE;
 import timeseriesweka.classifiers.hybrids.HiveCote;
+import timeseriesweka.classifiers.hybrids.cote.HiveCotePostProcessed;
 import timeseriesweka.classifiers.interval_based.TSF;
 import timeseriesweka.classifiers.shapelet_based.ShapeletTransformClassifier;
 import weka.classifiers.Classifier;
@@ -47,19 +48,19 @@ public class ExperimentRunner {
             classifiers[5] = new ProximityForestWrapper();
             classifiers[6] = new DD_DTW();
 
-            //Hive-Cote
+            //Hive-Cote Classifiers
             classifiers[7] = new ElasticEnsemble();
             classifiers[8] = new ShapeletTransformClassifier();
             classifiers[9] = new RISE();
             classifiers[10] = new BOSS();
             classifiers[11] = new TSF();
 
-            Classifier[] hcClassifiers = Arrays.copyOfRange(classifiers, 7,12);
-
-            HIVE_COTE hc = new HIVE_COTE();
-            hc.setupDefaultEnsembleSettings();
-            hc.setClassifiers(hcClassifiers, hc.getClassifierNames(), null);
-            classifiers[12] = hc;
+            ArrayList<String> hiveCoteClassifierNames = new ArrayList<>();
+            hiveCoteClassifierNames.add(classifiers[7].getClass().getSimpleName());
+            hiveCoteClassifierNames.add(classifiers[8].getClass().getSimpleName());
+            hiveCoteClassifierNames.add(classifiers[9].getClass().getSimpleName());
+            hiveCoteClassifierNames.add(classifiers[10].getClass().getSimpleName());
+            hiveCoteClassifierNames.add(classifiers[11].getClass().getSimpleName());
 
 
             String timeStamp = java.time.ZonedDateTime.now().toLocalDateTime().toString();
@@ -69,13 +70,15 @@ public class ExperimentRunner {
             path.mkdirs();
 
             FileWriter csv = new FileWriter("results/" + timeStamp + "/" + "timing.csv");
-            csv.append("Dataset,Classifier,Average Classify Time,Total Classify Time,Train Time" + "\n");
-            System.out.println("Dataset,Classifier,Average Classify Time,Total Classify Time,Train Time" + "\n");
-            
-            //Change this back to 0
+            csv.append("Classifier,Dataset,Average Classify Time,Total Classify Time,Train Time" + "\n");
+            System.out.println("Classifier,Dataset,Average Classify Time,Total Classify Time,Train Time" + "\n");
+
+            //Change this back to 0. 6 is beef.
             for (int dataset = 6; dataset < dataTest.length; dataset++) {
-                //Change this back to 0
-                for (int classifier = 8; classifier < NumClassifiers-1; classifier++) {
+                System.out.println(dataTrain[dataset].relationName());
+                //Change this back to 0. 7 for HC.
+                for (int classifier = 7; classifier < NumClassifiers-1; classifier++) {
+                    System.out.println(classifiers[classifier].getClass().getSimpleName());
                     try {
                         TimingExperiment t = new TimingExperiment(classifiers[classifier], dataTest[dataset], dataTrain[dataset]);
                         ResultWrapper rw = t.runNormalExperiment(NumResamples);
@@ -83,17 +86,20 @@ public class ExperimentRunner {
                         tresults[dataset][classifier] = rw.getTimingResults();
 
 
-                        String output = dataTrain[dataset].relationName() + "," + classifiers[classifier].getClass().getSimpleName() + "," +
-                                        TimingExperiment.timingResultArrayToString(tresults[dataset][classifier]) + "\n";
+                        String output = classifiers[classifier].getClass().getSimpleName() + "," + dataTrain[dataset].relationName() + "," +
+                                TimingExperiment.timingResultArrayToString(tresults[dataset][classifier]) + "\n";
                         System.out.println(output);
                         csv.append(output);
                         csv.flush();
-                        File dir = new File("results/" + timeStamp + "/" + dataTrain[dataset].relationName() + "/" );
+//                        File dir = new File("results/" + timeStamp + "/" + dataTrain[dataset].relationName() + "/" );
+                        File dir = new File("results/" + timeStamp + "/" + classifiers[classifier].getClass().getSimpleName() + "/Predictions/" + dataTrain[dataset].relationName() + "/" );
                         dir.mkdirs();
 
-                        //How to handle resamples?
+                        //How to handle resamples0?
                         for (int resample = 0; resample < NumResamples; resample++) {
-                            cresults[dataset][classifier][resample].writeFullResultsToFile("results/" + timeStamp + "/" + dataTrain[dataset].relationName() + "/" + classifiers[classifier].getClass().getSimpleName() + "-" + resample + ".csv");
+                            cresults[dataset][classifier][resample].writeFullResultsToFile("results/" + timeStamp + "/" + classifiers[classifier].getClass().getSimpleName() + "/Predictions/" + dataTrain[dataset].relationName() + "/testFold" + resample + ".csv");
+                            //No - need to make this the same as above, but need to do the crossvalidation first to get the trainFold data. 
+                            tresults[dataset][classifier][resample].getTrainAccuracyEstimator().writeTrainEstimatesToFile("results/" + timeStamp + "/" + classifiers[classifier].getClass().getSimpleName() + "/Predictions/" + dataTrain[dataset].relationName() + "/trainFold" + resample + ".csv");
                         }
 
 
@@ -102,12 +108,30 @@ public class ExperimentRunner {
                         e.printStackTrace();
                     }
                 }
+
+                //Hive-Cote Processing
+                //Need to setup for resamples.
+                //HiveCotePostProcessed hivecote = new HiveCotePostProcessed("results/" + timeStamp + "/" , dataTrain[dataset].relationName(), 0, hiveCoteClassifierNames);
+                for (int resample = 0; resample < NumResamples; resample++) {
+                    HiveCotePostProcessed hivecote = new HiveCotePostProcessed("results/" + timeStamp + "/", dataTrain[dataset].relationName(), resample, hiveCoteClassifierNames);
+                    hivecote.setAlpha(1);
+                    hivecote.writeTestSheet(timeStamp);
+                }
+
+
+//                TimingExperiment hivecoteT = new TimingExperiment(hivecote, dataTest[dataset], dataTrain[dataset]);
+//                ResultWrapper hivecoteRW = hivecoteT.runNormalExperiment(NumResamples);
+//                cresults[dataset][NumClassifiers-1] = hivecoteRW.getClassifierResults();
+//                tresults[dataset][NumClassifiers-1] = hivecoteRW.getTimingResults();
+
+
+
             }
             csv.close();
     }
     
     
-    private static Instances[] loadData(String extension, String type, String folderPath) {
+    public static Instances[] loadData(String extension, String type, String folderPath) {
         
         ArrayList<File> allFiles = new ArrayList<>();
         findAllFilesIncSubDirectories(allFiles, folderPath);
@@ -150,9 +174,5 @@ public class ExperimentRunner {
                 }
             }
         }   
-    }
-
-    private static void HiveCotePostProcessed() {
-        
     }
 }

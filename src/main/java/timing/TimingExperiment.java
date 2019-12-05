@@ -9,6 +9,8 @@ import evaluation.storage.ClassifierResults;
 import java.io.FileReader;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+
+import timeseriesweka.classifiers.TrainAccuracyEstimator;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.IBk;
 import weka.core.Instance;
@@ -66,10 +68,12 @@ public class TimingExperiment {
         
         for (int run = 0; run < numResamples; run++) {
             shuffleData(numSwaps, System.nanoTime());
-            
+
             double startTrain = System.nanoTime();
             train();
             double trainTime = System.nanoTime() - startTrain;
+
+            TrainAccuracyEstimator tae = (TrainAccuracyEstimator) classifier;
             
             double[] times = new double[data.numInstances()];
             
@@ -93,11 +97,12 @@ public class TimingExperiment {
                 cresults[run].addPrediction(inst.classValue(), dist, dist[index], (long)time, "");
             }
             
-            tresults[run] = new TimingResults( times, trainTime);
+            tresults[run] = new TimingResults(times, trainTime, tae);
         }
         return new ResultWrapper(tresults, cresults);
     }
-    
+
+    //need to pass in the same seed for each classifier.
     private void shuffleData(int numSwaps, long seed) {
         int numTrain = train.numInstances();
         Instances all = new Instances(train);
