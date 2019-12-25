@@ -32,7 +32,7 @@ public class TimingExperiment {
         Instances te = loadClassificationData("data/ECG5000_TEST.arff");
         Instances tr = loadClassificationData("data/ECG5000_TRAIN.arff");
         TimingExperiment t = new TimingExperiment(c, te, tr);
-        ResultWrapper rw = t.runNormalExperiment(30);
+        ResultWrapper rw = t.runNormalExperiment(30, 123456789);
         
         ClassifierResults[] cres = rw.getClassifierResults();
         TimingResults[] eres = rw.getTimingResults();
@@ -57,46 +57,52 @@ public class TimingExperiment {
         this.train = train;
     }
     
-    public ResultWrapper runNormalExperiment(int numResamples) throws Exception {
-        return runExperiment(numResamples, (data.numInstances() + train.numInstances()) * 5);
+    public ResultWrapper runNormalExperiment(int numResamples, int resampleSeed) throws Exception {
+        return runExperiment(numResamples, (data.numInstances() + train.numInstances()) * 5, resampleSeed);
     }
     
-    public ResultWrapper runExperiment(int numResamples, int numSwaps) throws Exception {
+    public ResultWrapper runExperiment(int numResamples, int numSwaps, int resampleSeed) throws Exception {
         
         TimingResults[] tresults = new TimingResults[numResamples];
         ClassifierResults[] cresults = new ClassifierResults[numResamples];
         
         for (int run = 0; run < numResamples; run++) {
-            shuffleData(numSwaps, System.nanoTime());
+            shuffleData(numSwaps, resampleSeed);
 
             double startTrain = System.nanoTime();
             train();
             double trainTime = System.nanoTime() - startTrain;
 
-            TrainAccuracyEstimator tae = (TrainAccuracyEstimator) classifier;
-            
+            TrainAccuracyEstimator tae = null;
+//            try {
+//                tae = (TrainAccuracyEstimator) classifier;
+//            }
+//            catch (Exception e){
+//                throw new Exception();
+//            }
+
             double[] times = new double[data.numInstances()];
-            
+
             cresults[run] = new ClassifierResults();
             cresults[run].setTimeUnit(TimeUnit.NANOSECONDS);
-            
+
             for (int i = 0; i < data.numInstances(); i++) {
                 Instance inst = data.get(i);
                 double startTime = System.nanoTime();
                 double[] dist = classifier.distributionForInstance(inst);
                 double time = System.nanoTime() - startTime;
                 times[i] = time;
-                
+
                 int index = 0;
                 for (int j = 1; j < dist.length; j++) {
                     if (dist[j] > dist[index]) {
                         index = j;
                     }
                 }
-               
+
                 cresults[run].addPrediction(inst.classValue(), dist, dist[index], (long)time, "");
             }
-            
+
             tresults[run] = new TimingResults(times, trainTime, tae);
         }
         return new ResultWrapper(tresults, cresults);

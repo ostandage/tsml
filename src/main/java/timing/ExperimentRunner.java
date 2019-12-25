@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 import timeseriesweka.classifiers.dictionary_based.BOSS;
 import timeseriesweka.classifiers.distance_based.*;
@@ -30,8 +31,10 @@ import weka_extras.classifiers.ensembles.HIVE_COTE;
 public class ExperimentRunner {
     
     private static final int NumClassifiers = 13;
-    private static final int NumResamples = 5;
-    
+    private static final int NumResamples = 1;
+    private static int NumDatasets;
+    private static final int NumSwaps = 10000;
+    private static final int ResampleSeed = 123456789;
     
     public static void main(String[] args) throws Exception {
             Instances[] dataTrain = loadData("arff", "TRAIN", "data/Univariate_arff");
@@ -39,7 +42,8 @@ public class ExperimentRunner {
             Classifier[] classifiers = new Classifier[NumClassifiers];
             ClassifierResults[][][] cresults = new ClassifierResults[dataTest.length][NumClassifiers][];
             TimingResults[][][] tresults = new TimingResults[dataTest.length][NumClassifiers][];
-            
+            NumDatasets = dataTest.length;
+
             classifiers[0] = new IBk();
             classifiers[1] = new DTW_kNN(1);
             classifiers[2] = new DTW1NN();
@@ -62,6 +66,28 @@ public class ExperimentRunner {
             hiveCoteClassifierNames.add(classifiers[10].getClass().getSimpleName());
             hiveCoteClassifierNames.add(classifiers[11].getClass().getSimpleName());
 
+//            Random rnd = new Random();
+//            Instances[][] resampledTrainData = new Instances[NumResamples][NumDatasets];
+//            Instances[][] resampledTestData = new Instances[NumResamples][NumDatasets];
+//
+//            for (int resample = 0; resample < NumResamples; resample++) {
+//                for (int set = 0; set < NumDatasets; set++) {
+//                    int numTrain = dataTrain[set].numInstances();
+//                    Instances all = new Instances(dataTrain[set]);
+//                    all.addAll(dataTest[set]);
+//
+//                    for (int swap = 0; swap < NumSwaps; swap++) {
+//                        all.swap((rnd.nextInt(Integer.MAX_VALUE) % all.numInstances()), (rnd.nextInt(Integer.MAX_VALUE) % all.numInstances()));
+//                    }
+//
+//                    resampledTrainData[resample][set] = new Instances(all, 0, numTrain);
+//                    resampledTestData[resample][set] = new Instances(all, numTrain, all.numInstances()-numTrain);
+//                }
+//            }
+
+
+
+
 
             String timeStamp = java.time.ZonedDateTime.now().toLocalDateTime().toString();
             timeStamp = timeStamp.replace(':', '-');
@@ -81,7 +107,7 @@ public class ExperimentRunner {
                     System.out.println(classifiers[classifier].getClass().getSimpleName());
                     try {
                         TimingExperiment t = new TimingExperiment(classifiers[classifier], dataTest[dataset], dataTrain[dataset]);
-                        ResultWrapper rw = t.runNormalExperiment(NumResamples);
+                        ResultWrapper rw = t.runNormalExperiment(NumResamples, ResampleSeed);
                         cresults[dataset][classifier] = rw.getClassifierResults();
                         tresults[dataset][classifier] = rw.getTimingResults();
 
@@ -98,8 +124,8 @@ public class ExperimentRunner {
                         //How to handle resamples0?
                         for (int resample = 0; resample < NumResamples; resample++) {
                             cresults[dataset][classifier][resample].writeFullResultsToFile("results/" + timeStamp + "/" + classifiers[classifier].getClass().getSimpleName() + "/Predictions/" + dataTrain[dataset].relationName() + "/testFold" + resample + ".csv");
-                            //No - need to make this the same as above, but need to do the crossvalidation first to get the trainFold data. 
-                            tresults[dataset][classifier][resample].getTrainAccuracyEstimator().writeTrainEstimatesToFile("results/" + timeStamp + "/" + classifiers[classifier].getClass().getSimpleName() + "/Predictions/" + dataTrain[dataset].relationName() + "/trainFold" + resample + ".csv");
+                            //No - need to make this the same as above, but need to do the crossvalidation first to get the trainFold data.
+                            //tresults[dataset][classifier][resample].getTrainAccuracyEstimator().writeTrainEstimatesToFile("results/" + timeStamp + "/" + classifiers[classifier].getClass().getSimpleName() + "/Predictions/" + dataTrain[dataset].relationName() + "/trainFold" + resample + ".csv");
                         }
 
 
@@ -112,11 +138,11 @@ public class ExperimentRunner {
                 //Hive-Cote Processing
                 //Need to setup for resamples.
                 //HiveCotePostProcessed hivecote = new HiveCotePostProcessed("results/" + timeStamp + "/" , dataTrain[dataset].relationName(), 0, hiveCoteClassifierNames);
-                for (int resample = 0; resample < NumResamples; resample++) {
-                    HiveCotePostProcessed hivecote = new HiveCotePostProcessed("results/" + timeStamp + "/", dataTrain[dataset].relationName(), resample, hiveCoteClassifierNames);
-                    hivecote.setAlpha(1);
-                    hivecote.writeTestSheet(timeStamp);
-                }
+//                for (int resample = 0; resample < NumResamples; resample++) {
+//                    HiveCotePostProcessed hivecote = new HiveCotePostProcessed("results/" + timeStamp + "/", dataTrain[dataset].relationName(), resample, hiveCoteClassifierNames);
+//                    hivecote.setAlpha(1);
+//                    hivecote.writeTestSheet(timeStamp);
+//                }
 
 
 //                TimingExperiment hivecoteT = new TimingExperiment(hivecote, dataTest[dataset], dataTrain[dataset]);
