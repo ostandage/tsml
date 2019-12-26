@@ -57,11 +57,11 @@ public class TimingExperiment {
         this.train = train;
     }
     
-    public ResultWrapper runNormalExperiment(int numResamples, int resampleSeed) throws Exception {
+    public ResultWrapper runNormalExperiment(int numResamples, long resampleSeed) throws Exception {
         return runExperiment(numResamples, (data.numInstances() + train.numInstances()) * 5, resampleSeed);
     }
     
-    public ResultWrapper runExperiment(int numResamples, int numSwaps, int resampleSeed) throws Exception {
+    public ResultWrapper runExperiment(int numResamples, int numSwaps, long resampleSeed) throws Exception {
         
         TimingResults[] tresults = new TimingResults[numResamples];
         ClassifierResults[] cresults = new ClassifierResults[numResamples];

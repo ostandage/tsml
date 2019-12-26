@@ -31,11 +31,10 @@ import weka_extras.classifiers.ensembles.HIVE_COTE;
 public class ExperimentRunner {
     
     private static final int NumClassifiers = 13;
-    private static final int NumResamples = 1;
+    private static final int NumResamples = 2;
     private static int NumDatasets;
     private static final int NumSwaps = 10000;
-    private static final int ResampleSeed = 123456789;
-    
+
     public static void main(String[] args) throws Exception {
             Instances[] dataTrain = loadData("arff", "TRAIN", "data/Univariate_arff");
             Instances[] dataTest = loadData("arff", "TEST", "data/Univariate_arff");
@@ -87,6 +86,7 @@ public class ExperimentRunner {
 
 
 
+            Random resampleSeedGenerator = new Random();
 
 
             String timeStamp = java.time.ZonedDateTime.now().toLocalDateTime().toString();
@@ -101,13 +101,14 @@ public class ExperimentRunner {
 
             //Change this back to 0. 6 is beef.
             for (int dataset = 6; dataset < dataTest.length; dataset++) {
+                long resampleSeed = resampleSeedGenerator.nextLong();
                 System.out.println(dataTrain[dataset].relationName());
                 //Change this back to 0. 7 for HC.
                 for (int classifier = 7; classifier < NumClassifiers-1; classifier++) {
                     System.out.println(classifiers[classifier].getClass().getSimpleName());
                     try {
                         TimingExperiment t = new TimingExperiment(classifiers[classifier], dataTest[dataset], dataTrain[dataset]);
-                        ResultWrapper rw = t.runNormalExperiment(NumResamples, ResampleSeed);
+                        ResultWrapper rw = t.runNormalExperiment(NumResamples, resampleSeed);
                         cresults[dataset][classifier] = rw.getClassifierResults();
                         tresults[dataset][classifier] = rw.getTimingResults();
 
