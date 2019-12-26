@@ -57,13 +57,10 @@ public abstract class AbstractPostProcessedCote {
             }
             scan = new Scanner(trainResult);
             scan.useDelimiter("\n");
-            scan.next();
-            scan.next();
-            scan.next();
-            //Why trying to put a csv line into a double?
-            //How do train files differ to test files?
-            String[] test = scan.next().split(",");
-            cvAccs[c] = Double.parseDouble(test[0]);
+            scan.next();    // header
+            scan.next();    // param info
+            //cvAccs is stored as the first value of this line.
+            cvAccs[c] = Double.parseDouble(scan.next().split(",")[0]);
             scan.close();
             // we don't need the cv predictions for anything in the current COTE configs, can address this later if we need to store them though
             
@@ -79,7 +76,6 @@ public abstract class AbstractPostProcessedCote {
                 while(scan.hasNext()){
                     if(numClassVals<=0){
                         lineParts = scan.next().split(",");
-                        //Predictions column???
                         numClassVals = lineParts.length-5; // subtract actual, pred, and empty cell for padding
                     }else{
                         scan.next();
@@ -100,8 +96,7 @@ public abstract class AbstractPostProcessedCote {
             scan.useDelimiter("\n");
             scan.next();
             scan.next();
-            String[] test2 = scan.next().split(",");
-            testAccs[c] = Double.parseDouble(test[0]);
+            testAccs[c] = Double.parseDouble(scan.next().split(",")[0]);
             counter = 0;
             while(scan.hasNext()){                
                 lineParts = scan.next().split(",");
@@ -116,9 +111,8 @@ public abstract class AbstractPostProcessedCote {
                 if(c==0){
                     testActualClassVals[counter] = Double.parseDouble(lineParts[0].trim());
                 }else{
-                    //This test is not working?? Class values don't align. Fix 4.0 != 4....
-                    if(testActualClassVals[counter]!=Double.parseDouble(lineParts[1].trim())){
-                        //throw new Exception("Error: class value mismatch. Test file for "+classifierNames.get(c)+ " states that instance "+counter+" has the class value of "+lineParts[0]+", but in "+classifierNames.get(0)+" it was "+testActualClassVals[counter]+".");
+                    if(testActualClassVals[counter]!= Double.parseDouble(lineParts[0].trim())){
+                        throw new Exception("Error: class value mismatch. Test file for "+classifierNames.get(c)+ " states that instance "+counter+" has the class value of "+lineParts[0]+", but in "+classifierNames.get(0)+" it was "+testActualClassVals[counter]+".");
                     }
                 }
                 counter++;
