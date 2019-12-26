@@ -124,6 +124,9 @@ public class ExperimentRunner {
 
                         //How to handle resamples0?
                         for (int resample = 0; resample < NumResamples; resample++) {
+                            cresults[dataset][classifier][resample].setClassifierName(classifiers[classifier].getClass().getSimpleName());
+                            cresults[dataset][classifier][resample].setDatasetName(dataTrain[dataset].relationName());
+                            cresults[dataset][classifier][resample].setSplit("test");
                             cresults[dataset][classifier][resample].writeFullResultsToFile("results/" + timeStamp + "/" + classifiers[classifier].getClass().getSimpleName() + "/Predictions/" + dataTrain[dataset].relationName() + "/testFold" + resample + ".csv");
                             //No - need to make this the same as above, but need to do the crossvalidation first to get the trainFold data.
                             //tresults[dataset][classifier][resample].getTrainAccuracyEstimator().writeTrainEstimatesToFile("results/" + timeStamp + "/" + classifiers[classifier].getClass().getSimpleName() + "/Predictions/" + dataTrain[dataset].relationName() + "/trainFold" + resample + ".csv");
