@@ -56,7 +56,41 @@ public class TimingExperiment {
         this.data = data;
         this.train = train;
     }
-    
+
+
+    public ClassifierResults[] runCrossValidation(int numFolds) throws Exception{
+        ClassifierResults[] foldResults = new ClassifierResults[numFolds];
+        int foldLength = train.numInstances() / numFolds;
+        for (int fold = 0; fold < numFolds; fold++){
+            Instances trainFoldData = new Instances(train);
+            Instances testFoldData = new Instances(train, fold * foldLength, foldLength);
+
+            for (int i = (fold+1)*foldLength; i < fold*foldLength; i--) {
+                trainFoldData.delete(i);
+            }
+
+            classifier.buildClassifier(trainFoldData);
+            foldResults[fold] = new ClassifierResults();
+            foldResults[fold].setTimeUnit(TimeUnit.NANOSECONDS);
+
+            for (int i = 0; i < testFoldData.numInstances(); i++) {
+                Instance inst = testFoldData.get(i);
+                long startTime = System.nanoTime();
+                double[] dist = classifier.distributionForInstance(inst);
+                long time = System.nanoTime() - startTime;
+
+                int index = 0;
+                for (int j = 1; j < dist.length; j++) {
+                    if (dist[j] > dist[index]) {
+                        index = j;
+                    }
+                }
+                foldResults[fold].addPrediction(inst.classValue(), dist, dist[index], time, "");
+            }
+        }
+        return foldResults;
+    }
+
     public ResultWrapper runNormalExperiment(int numResamples, long resampleSeed) throws Exception {
         return runExperiment(numResamples, (data.numInstances() + train.numInstances()) * 5, resampleSeed);
     }
@@ -108,7 +142,6 @@ public class TimingExperiment {
         return new ResultWrapper(tresults, cresults);
     }
 
-    //need to pass in the same seed for each classifier.
     private void shuffleData(int numSwaps, long seed) {
         int numTrain = train.numInstances();
         Instances all = new Instances(train);

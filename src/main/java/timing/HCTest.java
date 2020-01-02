@@ -36,7 +36,7 @@ public class HCTest {
                 hiveCoteClassifierNames.add(classifiers[11].getClass().getSimpleName());
 
 
-                HiveCotePostProcessed hivecote = new HiveCotePostProcessed("results/testHC/", "Beef", 0, hiveCoteClassifierNames);
+                HiveCotePostProcessed hivecote = new HiveCotePostProcessed("results/testHC/", "Chinatown", 1, hiveCoteClassifierNames);
                 hivecote.setAlpha(1);
                 hivecote.writeTestSheet("hiveCoteProcessed");
         }
