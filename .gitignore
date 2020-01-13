@@ -44,3 +44,5 @@ defaultShapeletOutput.txt
 data/
 results/
 out/
+scripts/
+bash/

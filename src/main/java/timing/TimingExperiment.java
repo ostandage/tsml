@@ -32,22 +32,7 @@ public class TimingExperiment {
         Instances te = loadClassificationData("data/ECG5000_TEST.arff");
         Instances tr = loadClassificationData("data/ECG5000_TRAIN.arff");
         TimingExperiment t = new TimingExperiment(c, te, tr);
-        ResultWrapper rw = t.runNormalExperiment(30, 123456789);
-        
-        ClassifierResults[] cres = rw.getClassifierResults();
-        TimingResults[] eres = rw.getTimingResults();
-        
-        System.out.println("\n********** Timing **********");
-        System.out.println("Average Classify Time,Total Classify Time,Train Time");
-        System.out.println(timingResultArrayToString(eres));
-        
-        System.out.println("\n********** Timing Combined **********");
-        TimingResults rcom = TimingResults.combineResults(eres);
-        System.out.println("Average Classify Time,Total Classify Time,Train Time");
-        System.out.println(rcom);
-        
-        System.out.println("\n********** Classifier Results **********");
-        System.out.println(cres[0].writeSummaryResultsToString());
+
 
     }
     
@@ -58,8 +43,9 @@ public class TimingExperiment {
     }
 
 
-    public ClassifierResults[] runCrossValidation(int numFolds) throws Exception{
+    public ClassifierResults runCrossValidation(int numFolds) throws Exception{
         ClassifierResults[] foldResults = new ClassifierResults[numFolds];
+        Classifier[] classifiers = new Classifier[numFolds];
         int foldLength = train.numInstances() / numFolds;
         for (int fold = 0; fold < numFolds; fold++){
             Instances trainFoldData = new Instances(train);
@@ -69,14 +55,15 @@ public class TimingExperiment {
                 trainFoldData.delete(i);
             }
 
-            classifier.buildClassifier(trainFoldData);
+            classifiers[fold] =  classifier.getClass().newInstance();
+            classifiers[fold].buildClassifier(trainFoldData);
             foldResults[fold] = new ClassifierResults();
             foldResults[fold].setTimeUnit(TimeUnit.NANOSECONDS);
 
             for (int i = 0; i < testFoldData.numInstances(); i++) {
                 Instance inst = testFoldData.get(i);
                 long startTime = System.nanoTime();
-                double[] dist = classifier.distributionForInstance(inst);
+                double[] dist = classifiers[fold].distributionForInstance(inst);
                 long time = System.nanoTime() - startTime;
 
                 int index = 0;
@@ -88,58 +75,56 @@ public class TimingExperiment {
                 foldResults[fold].addPrediction(inst.classValue(), dist, dist[index], time, "");
             }
         }
-        return foldResults;
+
+        int bestIndex = 0;
+
+        for (int fold = 0; fold < foldResults.length; fold++) {
+
+            if (foldResults[fold].getAcc() > foldResults[bestIndex].getAcc()) {
+                bestIndex = fold;
+            }
+        }
+
+        classifier = classifiers[bestIndex];
+        return foldResults[bestIndex];
     }
 
-    public ResultWrapper runNormalExperiment(int numResamples, long resampleSeed) throws Exception {
-        return runExperiment(numResamples, (data.numInstances() + train.numInstances()) * 5, resampleSeed);
-    }
-    
-    public ResultWrapper runExperiment(int numResamples, int numSwaps, long resampleSeed) throws Exception {
+    public ResultWrapper runExperiment(int resample) throws Exception {
         
-        TimingResults[] tresults = new TimingResults[numResamples];
-        ClassifierResults[] cresults = new ClassifierResults[numResamples];
-        
-        for (int run = 0; run < numResamples; run++) {
-            shuffleData(numSwaps, resampleSeed);
+        if (resample > 0) {
+            shuffleData((data.numInstances() + train.numInstances()) * 5, resample);
+        }
 
-            double startTrain = System.nanoTime();
-            train();
-            double trainTime = System.nanoTime() - startTrain;
+        double startTrain = System.nanoTime();
+        ClassifierResults trainResults = runCrossValidation(10);
+        double trainTime = System.nanoTime() - startTrain;
+        timeForTrain = trainTime;
 
-            TrainAccuracyEstimator tae = null;
-//            try {
-//                tae = (TrainAccuracyEstimator) classifier;
-//            }
-//            catch (Exception e){
-//                throw new Exception();
-//            }
+        double[] times = new double[data.numInstances()];
 
-            double[] times = new double[data.numInstances()];
+        ClassifierResults cresults = new ClassifierResults();
+        cresults.setTimeUnit(TimeUnit.NANOSECONDS);
 
-            cresults[run] = new ClassifierResults();
-            cresults[run].setTimeUnit(TimeUnit.NANOSECONDS);
+        for (int i = 0; i < data.numInstances(); i++) {
+            Instance inst = data.get(i);
+            double startTime = System.nanoTime();
+            double[] dist = classifier.distributionForInstance(inst);
+            double time = System.nanoTime() - startTime;
+            times[i] = time;
 
-            for (int i = 0; i < data.numInstances(); i++) {
-                Instance inst = data.get(i);
-                double startTime = System.nanoTime();
-                double[] dist = classifier.distributionForInstance(inst);
-                double time = System.nanoTime() - startTime;
-                times[i] = time;
-
-                int index = 0;
-                for (int j = 1; j < dist.length; j++) {
-                    if (dist[j] > dist[index]) {
-                        index = j;
-                    }
+            int index = 0;
+            for (int j = 1; j < dist.length; j++) {
+                if (dist[j] > dist[index]) {
+                    index = j;
                 }
-
-                cresults[run].addPrediction(inst.classValue(), dist, dist[index], (long)time, "");
             }
 
-            tresults[run] = new TimingResults(times, trainTime, tae);
+            cresults.addPrediction(inst.classValue(), dist, dist[index], (long)time, "");
         }
-        return new ResultWrapper(tresults, cresults);
+
+        TimingResults tresults = new TimingResults(times, trainTime, null);
+
+        return new ResultWrapper(tresults, cresults, trainResults);
     }
 
     private void shuffleData(int numSwaps, long seed) {
@@ -198,4 +183,5 @@ public class TimingExperiment {
         }
         return output;
     }
+
 }

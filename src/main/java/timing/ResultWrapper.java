@@ -6,25 +6,31 @@
 package timing;
 
 import evaluation.storage.ClassifierResults;
+import weka.classifiers.Classifier;
 
 /**
  *
  * @author ostandage
  */
 public class ResultWrapper {
-    private TimingResults[] timingResults;
-    private ClassifierResults[] classifierResults;
+    private TimingResults timingResults;
+    private ClassifierResults classifierResults;
+    private ClassifierResults trainResults;
     
-    public ResultWrapper(TimingResults[] timingResults, ClassifierResults[] classifierResults) {
+    public ResultWrapper(TimingResults timingResults, ClassifierResults classifierResults, ClassifierResults trainResults) {
         this.timingResults = timingResults;
         this.classifierResults = classifierResults;
+        this.trainResults = trainResults;
     }
     
-    public TimingResults[] getTimingResults() {
+    public TimingResults getTimingResults() {
         return timingResults;
     }
     
-    public ClassifierResults[] getClassifierResults() {
+    public ClassifierResults getClassifierResults() {
         return classifierResults;
+    }
+    public ClassifierResults getTrainResults() {
+        return trainResults;
     }
 }
