@@ -44,17 +44,17 @@ public class NewRunner {
     // 3    DataPath
     // 4    ResultsPath
     public static void main(String[] args) {
-//        Identifier = "id1";
-//        Resample = 0;
-//        ClassifierIndex = 3;
-//        DataPath = "data/Univariate_arff/ACSF1";
-//        ResultsPath = "results";
+        Identifier = "id1";
+        Resample = 0;
+        ClassifierIndex = 3;
+        DataPath = "data/Univariate_arff/ACSF1";
+        ResultsPath = "results";
 
-        Identifier = args[0];
-        Resample = Integer.parseInt(args[1]);
-        ClassifierIndex = Integer.parseInt(args[2]);
-        DataPath = args[3];
-        ResultsPath = args[4];
+//        Identifier = args[0];
+//        Resample = Integer.parseInt(args[1]);
+//        ClassifierIndex = Integer.parseInt(args[2]);
+//        DataPath = args[3];
+//        ResultsPath = args[4];
 
         Classifier[] classifiers = createClassifierArray();
         Instances dataTrain = loadData(DataPath, DatasetType.TRAIN);
@@ -63,17 +63,6 @@ public class NewRunner {
 
         File outputPath = new File(ResultsPath + "/" + Identifier);
         outputPath.mkdir();
-
-        FileWriter csv = null;
-        try {
-            csv = new FileWriter(ResultsPath + "/" + Identifier + "/" + "timing.csv");
-            csv.append("Classifier,Dataset,Resample,Average Classify Time,Total Classify Time,Train Time" + "\n");
-            System.out.println("Classifier,Dataset,Resample,Average Classify Time,Total Classify Time,Train Time" + "\n");
-        } catch (Exception e) {
-            System.out.println("ERROR: Something went wrong in csv setup.");
-            e.printStackTrace();
-            System.exit(1);
-        }
 
         System.out.println(dataTrain.relationName());
         System.out.println(classifiers[ClassifierIndex].getClass().getSimpleName());
@@ -108,14 +97,18 @@ public class NewRunner {
                 TimingResults tresults = rw.getTimingResults();
                 ClassifierResults trainResults = rw.getTrainResults();
 
-                String output = classifiers[ClassifierIndex].getClass().getSimpleName() + "," + dataTrain.relationName() + "," + Resample + "," +
-                        tresults + "\n";
-                System.out.println(output);
-                csv.append(output);
-                csv.flush();
 
                 File dir = new File(ResultsPath + "/" + Identifier + "/" + classifiers[ClassifierIndex].getClass().getSimpleName() + "/Predictions/" + dataTrain.relationName() + "/" );
                 dir.mkdirs();
+
+                FileWriter timingCSV = new FileWriter(ResultsPath + "/" + Identifier + "/" + classifiers[ClassifierIndex].getClass().getSimpleName() + "/Predictions/" + dataTrain.relationName() + "/timing" + Resample + ".csv");
+                timingCSV.append("Classifier,Dataset,Resample,Average Classify Time,Total Classify Time,Train Time" + "\n");
+
+                String output = classifiers[ClassifierIndex].getClass().getSimpleName() + "," + dataTrain.relationName() + "," + Resample + "," +
+                        tresults + "\n";
+                System.out.println(output);
+                timingCSV.append(output);
+                timingCSV.flush();
 
                 cresults.setClassifierName(classifiers[ClassifierIndex].getClass().getSimpleName());
                 cresults.setDatasetName(dataTrain.relationName());
