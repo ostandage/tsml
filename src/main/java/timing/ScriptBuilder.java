@@ -5,6 +5,7 @@ import sun.java2d.pipe.SpanShapeRenderer;
 import java.io.File;
 import java.io.FileWriter;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 
 public class ScriptBuilder {
@@ -45,6 +46,7 @@ public class ScriptBuilder {
         File dataDir = new File("scripts");
         String[] bsubs = dataDir.list();
 
+        Arrays.sort(bsubs);
         FileWriter fw = new FileWriter("bash/script.sh");
         fw.append("#!/bin/bash\n");
 
