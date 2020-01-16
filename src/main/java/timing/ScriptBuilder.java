@@ -1,5 +1,6 @@
 package timing;
 
+import experiments.data.DatasetLists;
 import sun.java2d.pipe.SpanShapeRenderer;
 
 import java.io.File;
@@ -15,8 +16,10 @@ public class ScriptBuilder {
         SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
         String identifier = df.format(d);
 
+        //Full Univariate.
         File dataDir = new File("data/Univariate_arff");
-        String[] datasets = dataDir.list();
+//        String[] datasets = dataDir.list();
+        String[] datasets = DatasetLists.tscProblems85;
 
         for (String dataset : datasets) {
             for (int classifier = 0; classifier < 24; classifier++) {

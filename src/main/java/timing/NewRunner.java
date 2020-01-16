@@ -15,6 +15,7 @@ import timeseriesweka.classifiers.shapelet_based.FastShapelets;
 import timeseriesweka.classifiers.shapelet_based.LearnShapelets;
 import timeseriesweka.classifiers.shapelet_based.ShapeletTransformClassifier;
 import weka.classifiers.Classifier;
+import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.lazy.IBk;
 import weka.core.Instances;
 
@@ -44,14 +45,14 @@ public class NewRunner {
     // 3    DataPath
     // 4    ResultsPath
     public static void main(String[] args) {
-        Identifier = "id1";
+        Identifier = "id4";
         Resample = 0;
-        ClassifierIndex = 3;
-        DataPath = "data/Univariate_arff/ACSF1";
+        ClassifierIndex = 7;
+        DataPath = "data/Univariate_arff/ItalyPowerDemand";
         ResultsPath = "results";
 
 //        Identifier = args[0];
-//        Resample = Integer.parseInt(args[1]);
+//        Resample = Integer.parseInt(args[1]) -1;
 //        ClassifierIndex = Integer.parseInt(args[2]);
 //        DataPath = args[3];
 //        ResultsPath = args[4];
@@ -157,7 +158,7 @@ public class NewRunner {
     private static Classifier[] createClassifierArray() {
         Classifier[] classifiers = new Classifier[NumClassifiers];
         classifiers[0] = new IBk();
-        classifiers[1] = new DTW_kNN(1);
+        classifiers[1] = new NaiveBayes();
         classifiers[2] = new DTW1NN();
         classifiers[3] = new FastDTW();
         classifiers[4] = new FastDTW_1NN();
@@ -183,6 +184,9 @@ public class NewRunner {
         classifiers[22] = new TSBF();
         classifiers[23] = new LPS();
         classifiers[24] = new FlatCote();
+
+        //Replace this with a list of strings, and then use setclassifier method to get the classifier,
+        //within the timing experiment class. ClassifierLists.
 
         return classifiers;
     }

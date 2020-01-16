@@ -10,7 +10,6 @@ import java.io.FileReader;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import timeseriesweka.classifiers.TrainAccuracyEstimator;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.IBk;
 import weka.core.Instance;
@@ -23,7 +22,7 @@ import weka.core.Instances;
 public class TimingExperiment {
     
     private Classifier classifier;
-    private Instances data;
+    private Instances test;
     private Instances train;
     private double timeForTrain;
     
@@ -38,7 +37,7 @@ public class TimingExperiment {
     
     public TimingExperiment(Classifier classifier, Instances data, Instances train) throws Exception {
         this.classifier = classifier; 
-        this.data = data;
+        this.test = data;
         this.train = train;
     }
 
@@ -85,44 +84,49 @@ public class TimingExperiment {
             }
         }
 
-        classifier = classifiers[bestIndex];
-        return foldResults[bestIndex];
+        classifier = classifiers[0];
+        return foldResults[0];
     }
 
     public ResultWrapper runExperiment(int resample) throws Exception {
         
         if (resample > 0) {
-            shuffleData((data.numInstances() + train.numInstances()) * 5, resample);
+            shuffleData((test.numInstances() + train.numInstances()) * 5, resample);
         }
 
         double startTrain = System.nanoTime();
-        ClassifierResults trainResults = runCrossValidation(10);
+//        ClassifierResults trainResults = runCrossValidation(10);
+        classifier.buildClassifier(train);
         double trainTime = System.nanoTime() - startTrain;
         timeForTrain = trainTime;
 
-        double[] times = new double[data.numInstances()];
+        double[] times = new double[test.numInstances()];
 
         ClassifierResults cresults = new ClassifierResults();
         cresults.setTimeUnit(TimeUnit.NANOSECONDS);
 
-        for (int i = 0; i < data.numInstances(); i++) {
-            Instance inst = data.get(i);
+        for (int i = 0; i < test.numInstances(); i++) {
+            Instance inst = test.get(i);
             double startTime = System.nanoTime();
             double[] dist = classifier.distributionForInstance(inst);
             double time = System.nanoTime() - startTime;
             times[i] = time;
 
-            int index = 0;
+            int maxIndex = 0;
             for (int j = 1; j < dist.length; j++) {
-                if (dist[j] > dist[index]) {
-                    index = j;
+                if (dist[j] > dist[maxIndex]) {
+                    maxIndex = j;
                 }
             }
-
-            cresults.addPrediction(inst.classValue(), dist, dist[index], (long)time, "");
+            cresults.addPrediction(inst.classValue(), dist, dist[maxIndex], (long)time, "");
         }
 
         TimingResults tresults = new TimingResults(times, trainTime, null);
+        cresults.finaliseResults();
+        System.out.println("Accuracy: " + cresults.getAcc());
+
+        //temp while CV is commented out.
+        ClassifierResults trainResults = cresults;
 
         return new ResultWrapper(tresults, cresults, trainResults);
     }
@@ -130,13 +134,13 @@ public class TimingExperiment {
     private void shuffleData(int numSwaps, long seed) {
         int numTrain = train.numInstances();
         Instances all = new Instances(train);
-        all.addAll(data);
+        all.addAll(test);
         Random rnd = new Random(seed);
         for (int swap = 0; swap < numSwaps; swap++) {
             all.swap((rnd.nextInt(Integer.MAX_VALUE) % all.numInstances()), (rnd.nextInt(Integer.MAX_VALUE) % all.numInstances()));
         }
         train = new Instances(all, 0, numTrain);
-        data = new Instances(all, numTrain, all.numInstances()-numTrain);
+        test = new Instances(all, numTrain, all.numInstances()-numTrain);
     }
     
     private void train() throws Exception {
