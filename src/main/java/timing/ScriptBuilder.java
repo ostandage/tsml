@@ -23,7 +23,7 @@ public class ScriptBuilder {
 
         for (String dataset : datasets) {
             for (int classifier = 0; classifier < 24; classifier++) {
-                writeBsubScript(5, dataset, classifier, identifier);
+                writeBsubScript(1, dataset, classifier, identifier);
             }
         }
 

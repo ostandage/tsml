@@ -71,7 +71,7 @@ public class TimingExperiment {
                         index = j;
                     }
                 }
-                foldResults[fold].addPrediction(inst.classValue(), dist, dist[index], time, "");
+                foldResults[fold].addPrediction(inst.classValue(), dist, index, time, "");
             }
         }
 
@@ -118,7 +118,7 @@ public class TimingExperiment {
                     maxIndex = j;
                 }
             }
-            cresults.addPrediction(inst.classValue(), dist, dist[maxIndex], (long)time, "");
+            cresults.addPrediction(inst.classValue(), dist, maxIndex, (long)time, "");
         }
 
         TimingResults tresults = new TimingResults(times, trainTime, null);

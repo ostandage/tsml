@@ -45,17 +45,17 @@ public class NewRunner {
     // 3    DataPath
     // 4    ResultsPath
     public static void main(String[] args) {
-        Identifier = "id4";
+        /*Identifier = "id4";
         Resample = 0;
-        ClassifierIndex = 7;
+        ClassifierIndex = 11;
         DataPath = "data/Univariate_arff/ItalyPowerDemand";
-        ResultsPath = "results";
+        ResultsPath = "results";*/
 
-//        Identifier = args[0];
-//        Resample = Integer.parseInt(args[1]) -1;
-//        ClassifierIndex = Integer.parseInt(args[2]);
-//        DataPath = args[3];
-//        ResultsPath = args[4];
+        Identifier = args[0];
+        Resample = Integer.parseInt(args[1]) -1;
+        ClassifierIndex = Integer.parseInt(args[2]);
+        DataPath = args[3];
+        ResultsPath = args[4];
 
         Classifier[] classifiers = createClassifierArray();
         Instances dataTrain = loadData(DataPath, DatasetType.TRAIN);
