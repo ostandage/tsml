@@ -44,35 +44,10 @@ public class TimingExperiment {
 
     public ClassifierResults runCrossValidation(int numFolds) throws Exception{
         ClassifierResults[] foldResults = new ClassifierResults[numFolds];
-        Classifier[] classifiers = new Classifier[numFolds];
         int foldLength = train.numInstances() / numFolds;
         for (int fold = 0; fold < numFolds; fold++){
-            Instances trainFoldData = new Instances(train);
-            Instances testFoldData = new Instances(train, fold * foldLength, foldLength);
 
-            for (int i = (fold+1)*foldLength; i < fold*foldLength; i--) {
-                trainFoldData.delete(i);
-            }
-
-            classifiers[fold] =  classifier.getClass().newInstance();
-            classifiers[fold].buildClassifier(trainFoldData);
-            foldResults[fold] = new ClassifierResults();
-            foldResults[fold].setTimeUnit(TimeUnit.NANOSECONDS);
-
-            for (int i = 0; i < testFoldData.numInstances(); i++) {
-                Instance inst = testFoldData.get(i);
-                long startTime = System.nanoTime();
-                double[] dist = classifiers[fold].distributionForInstance(inst);
-                long time = System.nanoTime() - startTime;
-
-                int index = 0;
-                for (int j = 1; j < dist.length; j++) {
-                    if (dist[j] > dist[index]) {
-                        index = j;
-                    }
-                }
-                foldResults[fold].addPrediction(inst.classValue(), dist, index, time, "");
-            }
+            foldResults[fold] = trainFold(fold, foldLength);
         }
 
         int bestIndex = 0;
@@ -84,8 +59,51 @@ public class TimingExperiment {
             }
         }
 
-        classifier = classifiers[0];
-        return foldResults[0];
+        return foldResults[bestIndex];
+    }
+
+    public ClassifierResults trainFold(int foldIndex, int foldLength) throws Exception{
+        ClassifierResults foldResult = new ClassifierResults();
+        foldResult.setTimeUnit(TimeUnit.NANOSECONDS);
+
+        Instances trainFoldData = new Instances(train);
+        Instances testFoldData = new Instances(train, foldIndex * foldLength, foldLength);
+
+        for (int i = (foldIndex+1)*foldLength; i < foldIndex*foldLength; i--) {
+            trainFoldData.delete(i);
+        }
+
+        classifier =  classifier.getClass().newInstance();
+        classifier.buildClassifier(trainFoldData);
+
+        for (int i = 0; i < testFoldData.numInstances(); i++) {
+            Instance inst = testFoldData.get(i);
+            long startTime = System.nanoTime();
+            double[] dist = classifier.distributionForInstance(inst);
+            long time = System.nanoTime() - startTime;
+
+            int index = 0;
+            for (int j = 1; j < dist.length; j++) {
+                if (dist[j] > dist[index]) {
+                    index = j;
+                }
+            }
+            foldResult.addPrediction(inst.classValue(), dist, index, time, "");
+        }
+        return foldResult;
+    }
+
+    public ClassifierResults runOptimalTraining(int numCVFolds) throws Exception{
+
+        //If classifier is tuneable run CV with varing parameters, else just train.
+        if (false) {
+
+        }
+        return normalTrain();
+    }
+
+    public ClassifierResults normalTrain() throws Exception{
+        return trainFold(0, train.numInstances());
     }
 
     public ResultWrapper runExperiment(int resample) throws Exception {
@@ -95,8 +113,7 @@ public class TimingExperiment {
         }
 
         double startTrain = System.nanoTime();
-//        ClassifierResults trainResults = runCrossValidation(10);
-        classifier.buildClassifier(train);
+        ClassifierResults trainResults = runOptimalTraining(10);
         double trainTime = System.nanoTime() - startTrain;
         timeForTrain = trainTime;
 
@@ -124,9 +141,6 @@ public class TimingExperiment {
         TimingResults tresults = new TimingResults(times, trainTime, null);
         cresults.finaliseResults();
         System.out.println("Accuracy: " + cresults.getAcc());
-
-        //temp while CV is commented out.
-        ClassifierResults trainResults = cresults;
 
         return new ResultWrapper(tresults, cresults, trainResults);
     }
