@@ -1,3 +1,8 @@
+//making DTW_1NN window size selection threaded (e.g. 100 windows, 100 threads)
+//1NN.
+
+//Discussion point about size of train data affecting test speed in real time.
+
 package timing;
 
 import evaluation.storage.ClassifierResults;
