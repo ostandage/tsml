@@ -38,7 +38,7 @@ public class NewRunner {
     private static String DataPath;
     private static String ResultsPath;
 
-    private static enum DatasetType {
+    public static enum DatasetType {
         TRAIN,
         TEST;
     }
