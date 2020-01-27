@@ -244,6 +244,9 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
 /*Basic distance, with early abandon. This is only for 1-nearest neighbour*/
             double minSoFar=Double.MAX_VALUE;
             double dist; int index=0;
+
+            //split up the instances into x number of batches and then process each batch on a core.
+            //final comparison of the best from each batch. Use some sort of offset to align the batches.
             for(int i=0;i<train.numInstances();i++){
                     dist=dtw.distance(train.instance(i),d,minSoFar);
                     if(dist<minSoFar){
@@ -279,7 +282,7 @@ answer is to store those without the abandon in a hash table indexed by i and j,
         int w;
         distances=new HashMap<>(trainSize);
         
-        
+        //Similar idea to above here.
         for(int i=0;i<trainSize;i++){
 //Find nearest to element i
             nearest=0;
