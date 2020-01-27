@@ -74,6 +74,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     private int trainSize;
     private int bestWarp;
     private int maxWindowSize;
+    private int maxNoThreads = 1;
     DTW_DistanceBasic dtw;
     HashMap<Integer,Double> distances;
     double maxR=1;
@@ -149,6 +150,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     public double getR(){ return dtw.getR();}
     public int getBestWarp(){ return bestWarp;}
     public int getWindowSize(){ return dtw.getWindowSize(train.numAttributes()-1);}
+    public void setMaxNoThreads(int maxNoThreads){this.maxNoThreads = maxNoThreads;}
 
     @Override
     public void buildClassifier(Instances d){
@@ -241,20 +243,25 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     }
     @Override
     public double classifyInstance(Instance d){
-/*Basic distance, with early abandon. This is only for 1-nearest neighbour*/
-            double minSoFar=Double.MAX_VALUE;
-            double dist; int index=0;
+        /*Basic distance, with early abandon. This is only for 1-nearest neighbour*/
+        int index = 0;
 
+        if (maxNoThreads == 1) {
+            double minSoFar = Double.MAX_VALUE;
+            double dist;
+            for (int i = 0; i < train.numInstances(); i++) {
+                dist = dtw.distance(train.instance(i), d, minSoFar);
+                if (dist < minSoFar) {
+                    minSoFar = dist;
+                    index = i;
+                }
+            }
+        }
+        else {
             //split up the instances into x number of batches and then process each batch on a core.
             //final comparison of the best from each batch. Use some sort of offset to align the batches.
-            for(int i=0;i<train.numInstances();i++){
-                    dist=dtw.distance(train.instance(i),d,minSoFar);
-                    if(dist<minSoFar){
-                            minSoFar=dist;
-                            index=i;
-                    }
-            }
-            return train.instance(index).classValue();
+        }
+        return train.instance(index).classValue();
     }
     @Override
     public double[] distributionForInstance(Instance instance){
