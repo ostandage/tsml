@@ -73,7 +73,6 @@ public class TimingExperiment {
             trainFoldData.delete(i);
         }
 
-        classifier =  classifier.getClass().newInstance();
         classifier.buildClassifier(trainFoldData);
 
         for (int i = 0; i < testFoldData.numInstances(); i++) {
