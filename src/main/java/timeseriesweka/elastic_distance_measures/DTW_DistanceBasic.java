@@ -92,7 +92,7 @@ public class DTW_DistanceBasic extends EuclideanDistance{
 /*  Parameter 0<=r<=1. 0 == no warp, 1 == full warp 
 generalised for variable window size
 * */
-        matrixD = new double[n][n];        
+        matrixD = new double[n][n];
         windowSize = getWindowSize(n);
 /*
 //Set all to max. This is necessary for the window but I dont need to do 
@@ -136,7 +136,7 @@ generalised for variable window size
             }
             
         }			
-//Find the minimum distance at the end points, within the warping window. 
+//Find the minimum distance at the end points, within the warping window.
         return matrixD[n-1][m-1];
     }
 

@@ -313,8 +313,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         }
 
         public void run() {
-            //The original method is much faster because it preserves the dtw thing.
-            DTW_DistanceBasic temp = new DTW_DistanceBasic();
+            DTW_DistanceBasic temp = new DTW();
             double dist = 0.0;
             for (int i = start; i < end; i++) {
                 //WHY????????? - distance() uses member vars :(

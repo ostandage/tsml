@@ -167,7 +167,7 @@ public class NewRunner {
         classifiers[3] = new FastDTW();
 
         FastDTW_1NN dtw_1NN = new FastDTW_1NN();
-        dtw_1NN.setMaxNoThreads(4);
+        dtw_1NN.setMaxNoThreads(1);
         classifiers[4] = dtw_1NN;
 
         classifiers[5] = new ProximityForestWrapper();
