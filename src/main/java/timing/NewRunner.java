@@ -50,22 +50,21 @@ public class NewRunner {
     // 3    DataPath
     // 4    ResultsPath
     public static void main(String[] args) {
-        /*Identifier = "id4";
+        Identifier = "id5";
         Resample = 0;
-        ClassifierIndex = 11;
-        DataPath = "data/Univariate_arff/ItalyPowerDemand";
-        ResultsPath = "results";*/
+        ClassifierIndex = 4;
+        DataPath = "data/Univariate_arff/ChlorineConcentration";
+        ResultsPath = "results";
 
-        Identifier = args[0];
-        Resample = Integer.parseInt(args[1]) -1;
-        ClassifierIndex = Integer.parseInt(args[2]);
-        DataPath = args[3];
-        ResultsPath = args[4];
+//        Identifier = args[0];
+//        Resample = Integer.parseInt(args[1]) -1;
+//        ClassifierIndex = Integer.parseInt(args[2]);
+//        DataPath = args[3];
+//        ResultsPath = args[4];
 
         Classifier[] classifiers = createClassifierArray();
         Instances dataTrain = loadData(DataPath, DatasetType.TRAIN);
         Instances dataTest = loadData(DataPath, DatasetType.TEST);
-
 
         File outputPath = new File(ResultsPath + "/" + Identifier);
         outputPath.mkdir();
@@ -166,7 +165,11 @@ public class NewRunner {
         classifiers[1] = new NaiveBayes();
         classifiers[2] = new DTW1NN();
         classifiers[3] = new FastDTW();
-        classifiers[4] = new FastDTW_1NN();
+
+        FastDTW_1NN dtw_1NN = new FastDTW_1NN();
+        dtw_1NN.setMaxNoThreads(4);
+        classifiers[4] = dtw_1NN;
+
         classifiers[5] = new ProximityForestWrapper();
         classifiers[6] = new DD_DTW();
         //Hive-Cote Classifiers

@@ -20,12 +20,9 @@ import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;
 import java.util.HashMap;
 import evaluation.storage.ClassifierResults;
 import experiments.data.DatasetLoading;
-import utilities.ClassifierTools;
 import weka_extras.classifiers.SaveEachParameter;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.Classifier;
 import weka.core.*;
-import java.lang.instrument.*;
 import timeseriesweka.classifiers.ParameterSplittable;
 import timeseriesweka.classifiers.SaveParameterInfo;
 import timeseriesweka.classifiers.TrainAccuracyEstimator;
@@ -246,10 +243,13 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         /*Basic distance, with early abandon. This is only for 1-nearest neighbour*/
         int index = 0;
 
+        //if default params, run original method.
         if (maxNoThreads == 1) {
             double minSoFar = Double.MAX_VALUE;
             double dist;
+            //DTW_DistanceBasic temp = new DTW_DistanceBasic();
             for (int i = 0; i < train.numInstances(); i++) {
+                //dist = temp.distance(train.instance(i), d, minSoFar);
                 dist = dtw.distance(train.instance(i), d, minSoFar);
                 if (dist < minSoFar) {
                     minSoFar = dist;
@@ -258,11 +258,76 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             }
         }
         else {
-            //split up the instances into x number of batches and then process each batch on a core.
-            //final comparison of the best from each batch. Use some sort of offset to align the batches.
+//          split up the instances into x number of batches and then process each batch on a core.
+//          final comparison of the best from each batch.
+
+            int intervalSize = train.numInstances() / maxNoThreads;
+
+            ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
+            for (int t = 0; t < maxNoThreads; t++) {
+                if (t == maxNoThreads-1) {
+                    //Overspill at end due to integer division.
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances());
+                }
+                else {
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize);
+                }
+                classifyThreads[t].start();
+            }
+
+            for (int t = 0; t < maxNoThreads; t++) {
+                try {
+                    classifyThreads[t].join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            int curMinIndex = 0;
+            for (int i = 0; i < maxNoThreads; i++) {
+                if (classifyThreads[i].nearestDist < classifyThreads[curMinIndex].nearestDist) {
+                    curMinIndex = i;
+                }
+            }
+            index = classifyThreads[curMinIndex].nearestIndex;
+
         }
+
         return train.instance(index).classValue();
     }
+
+    private class ClassifyThread extends Thread {
+        private double nearestDist;
+        private int nearestIndex;
+        private Instance d;
+        private int start;
+        private int end;
+
+        public ClassifyThread(Instance d, int start, int end) {
+            this.d = d;
+            this.start = start;
+            this.end = end;
+
+            nearestDist = Double.MAX_VALUE;
+            nearestIndex = -1;
+        }
+
+        public void run() {
+            //The original method is much faster because it preserves the dtw thing.
+            DTW_DistanceBasic temp = new DTW_DistanceBasic();
+            double dist = 0.0;
+            for (int i = start; i < end; i++) {
+                //WHY????????? - distance() uses member vars :(
+                dist = temp.distance(train.instance(i), d, nearestDist);
+
+                if (dist <= nearestDist) {
+                    nearestDist = dist;
+                    nearestIndex = i;
+                }
+            }
+        }
+    }
+
     @Override
     public double[] distributionForInstance(Instance instance){
         double[] dist=new double[instance.numClasses()];
@@ -270,7 +335,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         return dist;
     }
 
-    
+
     /**Could do this by calculating the distance matrix, but then 	
  * you cannot use the early abandon. Early abandon about doubles the speed,
  * as will storing the distances. Given the extra n^2 memory, probably better
