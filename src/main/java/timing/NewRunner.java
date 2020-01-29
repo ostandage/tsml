@@ -37,6 +37,7 @@ public class NewRunner {
     private static int ClassifierIndex;
     private static String DataPath;
     private static String ResultsPath;
+    private static int NumThreads = 1;
 
     public static enum DatasetType {
         TRAIN,
@@ -50,17 +51,18 @@ public class NewRunner {
     // 3    DataPath
     // 4    ResultsPath
     public static void main(String[] args) {
-        Identifier = "id5";
-        Resample = 0;
-        ClassifierIndex = 4;
-        DataPath = "data/Univariate_arff/ChlorineConcentration";
-        ResultsPath = "results";
+//        Identifier = "id5";
+//        Resample = 0;
+//        ClassifierIndex = 4;
+//        DataPath = "data/Univariate_arff/ChlorineConcentration";
+//        ResultsPath = "results";
 
-//        Identifier = args[0];
-//        Resample = Integer.parseInt(args[1]) -1;
-//        ClassifierIndex = Integer.parseInt(args[2]);
-//        DataPath = args[3];
-//        ResultsPath = args[4];
+        Identifier = args[0];
+        Resample = Integer.parseInt(args[1]) -1;
+        ClassifierIndex = Integer.parseInt(args[2]);
+        DataPath = args[3];
+        ResultsPath = args[4];
+        NumThreads = Integer.parseInt(args[5]);
 
         Classifier[] classifiers = createClassifierArray();
         Instances dataTrain = loadData(DataPath, DatasetType.TRAIN);
@@ -167,7 +169,7 @@ public class NewRunner {
         classifiers[3] = new FastDTW();
 
         FastDTW_1NN dtw_1NN = new FastDTW_1NN();
-        dtw_1NN.setMaxNoThreads(1);
+        dtw_1NN.setMaxNoThreads(NumThreads);
         classifiers[4] = dtw_1NN;
 
         classifiers[5] = new ProximityForestWrapper();
