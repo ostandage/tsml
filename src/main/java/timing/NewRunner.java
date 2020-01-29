@@ -62,8 +62,10 @@ public class NewRunner {
         ClassifierIndex = Integer.parseInt(args[2]);
         DataPath = args[3];
         ResultsPath = args[4];
-        NumThreads = Integer.parseInt(args[5]);
-
+        if (args.length == 6) {
+            NumThreads = Integer.parseInt(args[5]);
+        }
+        
         Classifier[] classifiers = createClassifierArray();
         Instances dataTrain = loadData(DataPath, DatasetType.TRAIN);
         Instances dataTest = loadData(DataPath, DatasetType.TEST);
