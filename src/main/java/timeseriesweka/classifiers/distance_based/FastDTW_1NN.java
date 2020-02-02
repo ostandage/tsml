@@ -14,11 +14,11 @@
  */
 package timeseriesweka.classifiers.distance_based;
 import fileIO.OutFile;
-import java.util.ArrayList;
+
+import java.util.*;
+
 import timeseriesweka.elastic_distance_measures.DTW;
 import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;
-import java.util.HashMap;
-import java.util.TreeSet;
 
 import evaluation.storage.ClassifierResults;
 import experiments.data.DatasetLoading;
@@ -266,16 +266,19 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             int intervalSize = train.numInstances() / maxNoThreads;
 
             ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
-            TreeSet<Double> smallPredictions = new TreeSet<>();
-            smallPredictions.add(Double.MAX_VALUE);
+//            TreeSet<Double> smallPredictions = new TreeSet<>();
+//            smallPredictions.add(Double.MAX_VALUE);
+            SortedMap<Double, Integer> predictions = Collections.synchronizedSortedMap(new TreeMap<Double, Integer>());
+
+            predictions.put(Double.MAX_VALUE, -1);
 
             for (int t = 0; t < maxNoThreads; t++) {
                 if (t == maxNoThreads-1) {
                     //Overspill at end due to integer division.
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances(),smallPredictions);
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances(),predictions);
                 }
                 else {
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize, smallPredictions);
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize, predictions);
                 }
                 classifyThreads[t].start();
             }
@@ -288,13 +291,14 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                 }
             }
 
-            int curMinIndex = 0;
-            for (int i = 0; i < maxNoThreads; i++) {
-                if (classifyThreads[i].nearestDist < classifyThreads[curMinIndex].nearestDist) {
-                    curMinIndex = i;
-                }
-            }
-            index = classifyThreads[curMinIndex].nearestIndex;
+//            int curMinIndex = 0;
+//            for (int i = 0; i < maxNoThreads; i++) {
+//                if (classifyThreads[i].nearestDist < classifyThreads[curMinIndex].nearestDist) {
+//                    curMinIndex = i;
+//                }
+//            }
+//            index = classifyThreads[curMinIndex].nearestIndex;
+            index = predictions.get(predictions.firstKey());
 
         }
 
@@ -307,9 +311,9 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         private Instance d;
         private int start;
         private int end;
-        private TreeSet<Double> smallPredictions;
+        private SortedMap<Double, Integer> smallPredictions;
 
-        public ClassifyThread(Instance d, int start, int end, TreeSet<Double> smallPredictions) {
+        public ClassifyThread(Instance d, int start, int end, SortedMap<Double, Integer> smallPredictions) {
             this.d = d;
             this.start = start;
             this.end = end;
@@ -324,12 +328,14 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             double dist = 0.0;
             for (int i = start; i < end; i++) {
                 //WHY????????? - distance() uses member vars :(
-                dist = temp.distance(train.instance(i), d, smallPredictions.first());
+                dist = temp.distance(train.instance(i), d, smallPredictions.firstKey());
 
                 if (dist <= nearestDist) {
-                    smallPredictions.add(dist);
-                    nearestDist = dist;
-                    nearestIndex = i;
+                    synchronized (smallPredictions) {
+                        smallPredictions.put(dist, i);
+                    }
+                    //nearestDist = dist;
+                    //nearestIndex = i;
                 }
             }
         }
