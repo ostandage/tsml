@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import timeseriesweka.elastic_distance_measures.DTW;
 import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;
 import java.util.HashMap;
+import java.util.TreeSet;
+
 import evaluation.storage.ClassifierResults;
 import experiments.data.DatasetLoading;
 import weka_extras.classifiers.SaveEachParameter;
@@ -264,13 +266,16 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             int intervalSize = train.numInstances() / maxNoThreads;
 
             ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
+            TreeSet<Double> smallPredictions = new TreeSet<>();
+            smallPredictions.add(Double.MAX_VALUE);
+
             for (int t = 0; t < maxNoThreads; t++) {
                 if (t == maxNoThreads-1) {
                     //Overspill at end due to integer division.
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances());
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances(),smallPredictions);
                 }
                 else {
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize);
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize, smallPredictions);
                 }
                 classifyThreads[t].start();
             }
@@ -302,11 +307,13 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         private Instance d;
         private int start;
         private int end;
+        private TreeSet<Double> smallPredictions;
 
-        public ClassifyThread(Instance d, int start, int end) {
+        public ClassifyThread(Instance d, int start, int end, TreeSet<Double> smallPredictions) {
             this.d = d;
             this.start = start;
             this.end = end;
+            this.smallPredictions = smallPredictions;
 
             nearestDist = Double.MAX_VALUE;
             nearestIndex = -1;
@@ -317,9 +324,10 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             double dist = 0.0;
             for (int i = start; i < end; i++) {
                 //WHY????????? - distance() uses member vars :(
-                dist = temp.distance(train.instance(i), d, nearestDist);
+                dist = temp.distance(train.instance(i), d, smallPredictions.first());
 
                 if (dist <= nearestDist) {
+                    smallPredictions.add(dist);
                     nearestDist = dist;
                     nearestIndex = i;
                 }

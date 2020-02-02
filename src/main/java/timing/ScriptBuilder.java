@@ -35,13 +35,13 @@ public class ScriptBuilder {
         FileWriter fw = new FileWriter("scripts/" + dataset + "_" + classifier + ".bsub");
         fw.append("#!/bin/csh\n");
         fw.append("#BSUB -q long-eth\n");
-        fw.append("#BSUB -J " + dataset + "_" + classifier + "[1-" + (numResamples + 1) + "]\n");
+        fw.append("#BSUB -J " + dataset + "_" + classifier + "[1-" + (numResamples) + "]\n");
         fw.append("#BSUB -oo output/output_%I.txt\n");
         fw.append("#BSUB -eo error/error_%I.txt\n");
         fw.append("#BSUB -R \"rusage[mem=6000]\"\n");
-        fw.append("#BSUB -M 6000\n");
+        fw.append("#BSUB -M 10000\n");
         fw.append("module add java/jdk1.8.0_51\n");
-        fw.append("java -jar -Xmx6000m TimingExperiment.jar " + id + " $LSB_JOBINDEX " + classifier + " /gpfs/home/sjk17evu/Univariate_arff/" + dataset + " /gpfs/scratch/sjk17evu/results $LSB_JOBINDEX true\n");
+        fw.append("java -jar -Xmx10000m TimingExperiment.jar " + id + " $LSB_JOBINDEX " + classifier + " /gpfs/home/sjk17evu/Univariate_arff/" + dataset + " /gpfs/scratch/sjk17evu/results $LSB_JOBINDEX true\n");
         fw.flush();
     }
 
