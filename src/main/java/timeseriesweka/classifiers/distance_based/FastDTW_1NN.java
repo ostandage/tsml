@@ -249,9 +249,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         if (maxNoThreads == 1) {
             double minSoFar = Double.MAX_VALUE;
             double dist;
-            //DTW_DistanceBasic temp = new DTW_DistanceBasic();
             for (int i = 0; i < train.numInstances(); i++) {
-                //dist = temp.distance(train.instance(i), d, minSoFar);
                 dist = dtw.distance(train.instance(i), d, minSoFar);
                 if (dist < minSoFar) {
                     minSoFar = dist;
@@ -261,15 +259,11 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         }
         else {
 //          split up the instances into x number of batches and then process each batch on a core.
-//          final comparison of the best from each batch.
 
             int intervalSize = train.numInstances() / maxNoThreads;
 
             ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
-//            TreeSet<Double> smallPredictions = new TreeSet<>();
-//            smallPredictions.add(Double.MAX_VALUE);
             SortedMap<Double, Integer> predictions = Collections.synchronizedSortedMap(new TreeMap<Double, Integer>());
-
             predictions.put(Double.MAX_VALUE, -1);
 
             for (int t = 0; t < maxNoThreads; t++) {
@@ -290,14 +284,6 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                     e.printStackTrace();
                 }
             }
-
-//            int curMinIndex = 0;
-//            for (int i = 0; i < maxNoThreads; i++) {
-//                if (classifyThreads[i].nearestDist < classifyThreads[curMinIndex].nearestDist) {
-//                    curMinIndex = i;
-//                }
-//            }
-//            index = classifyThreads[curMinIndex].nearestIndex;
             index = predictions.get(predictions.firstKey());
 
         }
@@ -327,15 +313,12 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             DTW_DistanceBasic temp = new DTW();
             double dist = 0.0;
             for (int i = start; i < end; i++) {
-                //WHY????????? - distance() uses member vars :(
                 dist = temp.distance(train.instance(i), d, smallPredictions.firstKey());
 
                 if (dist <= nearestDist) {
                     synchronized (smallPredictions) {
                         smallPredictions.put(dist, i);
                     }
-                    //nearestDist = dist;
-                    //nearestIndex = i;
                 }
             }
         }
