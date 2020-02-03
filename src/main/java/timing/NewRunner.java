@@ -51,22 +51,30 @@ public class NewRunner {
     // 3    DataPath
     // 4    ResultsPath
     public static void main(String[] args) {
-//        Identifier = "id5";
-//        Resample = 0;
-//        ClassifierIndex = 4;
-//        DataPath = "data/Univariate_arff/Beef";
-//        ResultsPath = "results";
-//        NumThreads = 4;
-
-        Identifier = args[0];
-        Resample = Integer.parseInt(args[1]) -1;
-        ClassifierIndex = Integer.parseInt(args[2]);
-        DataPath = args[3];
-        ResultsPath = args[4];
-        if (args.length == 6) {
-            NumThreads = Integer.parseInt(args[5]);
+        
+        //Debug
+        if (args.length == 0) {
+            Identifier = "id5";
+            Resample = 0;
+            ClassifierIndex = 4;
+            DataPath = "data/Univariate_arff/ChlorineConcentration";
+            ResultsPath = "results";
+            NumThreads = 4;
         }
-//
+
+        else {
+            Identifier = args[0];
+            Resample = Integer.parseInt(args[1]) - 1;
+            ClassifierIndex = Integer.parseInt(args[2]);
+            DataPath = args[3];
+            ResultsPath = args[4];
+
+            //backwards compatibility.
+            if (args.length == 6) {
+                NumThreads = Integer.parseInt(args[5]);
+            }
+        }
+
         Classifier[] classifiers = createClassifierArray();
         Instances dataTrain = loadData(DataPath, DatasetType.TRAIN);
         Instances dataTest = loadData(DataPath, DatasetType.TEST);
