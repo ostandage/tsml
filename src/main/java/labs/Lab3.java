@@ -41,7 +41,7 @@ public class Lab3 {
         System.out.println("5-A\n");
 
         Instances aedes = WekaTools.loadClassificationData("data/labsdata/Aedes_Female_VS_House_Fly_POWER.arff");
-        Instances[] aedesSplit = WekaTools.splitData(football, 0.7);
+        Instances[] aedesSplit = WekaTools.splitData(aedes, 0.7);
         Instances aedesTrain = aedesSplit[0];
         Instances aedesTest = aedesSplit[1];
 
