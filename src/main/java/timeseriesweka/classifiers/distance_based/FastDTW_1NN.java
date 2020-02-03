@@ -260,19 +260,18 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         else {
 //          split up the instances into x number of batches and then process each batch on a core.
 
+            ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
             int intervalSize = train.numInstances() / maxNoThreads;
 
-            ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
-            SortedMap<Double, Integer> predictions = Collections.synchronizedSortedMap(new TreeMap<Double, Integer>());
-            predictions.put(Double.MAX_VALUE, -1);
+            temp closest = new temp(Double.MAX_VALUE, -1);
 
             for (int t = 0; t < maxNoThreads; t++) {
                 if (t == maxNoThreads-1) {
                     //Overspill at end due to integer division.
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances(),predictions);
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances(), closest);
                 }
                 else {
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize, predictions);
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize, closest);
                 }
                 classifyThreads[t].start();
             }
@@ -284,40 +283,47 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                     e.printStackTrace();
                 }
             }
-            index = predictions.get(predictions.firstKey());
+            index = closest.index;
 
         }
 
         return train.instance(index).classValue();
     }
 
+    class temp {
+        private double minDist;
+        private int index;
+
+        public temp (double minDist, int index) {
+            this.minDist = minDist;
+            this.index = index;
+        }
+    }
+
     private class ClassifyThread extends Thread {
-        private double nearestDist;
-        private int nearestIndex;
         private Instance d;
         private int start;
         private int end;
-        private SortedMap<Double, Integer> smallPredictions;
+        private temp t;
 
-        public ClassifyThread(Instance d, int start, int end, SortedMap<Double, Integer> smallPredictions) {
+
+        public ClassifyThread(Instance d, int start, int end, temp t) {
             this.d = d;
             this.start = start;
             this.end = end;
-            this.smallPredictions = smallPredictions;
-
-            nearestDist = Double.MAX_VALUE;
-            nearestIndex = -1;
+            this.t = t;
         }
 
         public void run() {
             DTW_DistanceBasic temp = new DTW();
             double dist = 0.0;
             for (int i = start; i < end; i++) {
-                dist = temp.distance(train.instance(i), d, smallPredictions.firstKey());
+                dist = temp.distance(train.instance(i), d, t.minDist);
 
-                if (dist <= nearestDist) {
-                    synchronized (smallPredictions) {
-                        smallPredictions.put(dist, i);
+                if (dist <= t.minDist) {
+                    synchronized (t) {
+                        t.minDist = dist;
+                        t.index = i;
                     }
                 }
             }
