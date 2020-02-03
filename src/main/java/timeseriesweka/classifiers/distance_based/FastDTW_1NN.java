@@ -263,15 +263,15 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
             int intervalSize = train.numInstances() / maxNoThreads;
 
-            temp closest = new temp(Double.MAX_VALUE, -1);
+            InstanceDistance closestInstance = new InstanceDistance(Double.MAX_VALUE, -1);
 
             for (int t = 0; t < maxNoThreads; t++) {
                 if (t == maxNoThreads-1) {
                     //Overspill at end due to integer division.
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances(), closest);
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances(), closestInstance);
                 }
                 else {
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize, closest);
+                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize, closestInstance);
                 }
                 classifyThreads[t].start();
             }
@@ -283,19 +283,19 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                     e.printStackTrace();
                 }
             }
-            index = closest.index;
+            index = closestInstance.index;
 
         }
 
         return train.instance(index).classValue();
     }
 
-    class temp {
-        private double minDist;
+    private class InstanceDistance {
+        private double distance;
         private int index;
 
-        public temp (double minDist, int index) {
-            this.minDist = minDist;
+        public InstanceDistance(double distance, int index) {
+            this.distance = distance;
             this.index = index;
         }
     }
@@ -304,26 +304,25 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         private Instance d;
         private int start;
         private int end;
-        private temp t;
+        private InstanceDistance closestInstance;
 
-
-        public ClassifyThread(Instance d, int start, int end, temp t) {
+        public ClassifyThread(Instance d, int start, int end, InstanceDistance closestInstance) {
             this.d = d;
             this.start = start;
             this.end = end;
-            this.t = t;
+            this.closestInstance = closestInstance;
         }
 
         public void run() {
             DTW_DistanceBasic temp = new DTW();
             double dist = 0.0;
             for (int i = start; i < end; i++) {
-                dist = temp.distance(train.instance(i), d, t.minDist);
+                dist = temp.distance(train.instance(i), d, closestInstance.distance);
 
-                if (dist <= t.minDist) {
-                    synchronized (t) {
-                        t.minDist = dist;
-                        t.index = i;
+                if (dist <= closestInstance.distance) {
+                    synchronized (closestInstance) {
+                        closestInstance.distance = dist;
+                        closestInstance.index = i;
                     }
                 }
             }
