@@ -112,10 +112,11 @@ public class TimingExperiment {
         }
 
         double startTrain = System.nanoTime();
-        ClassifierResults trainResults = runOptimalTraining(10);
+        classifier.buildClassifier(train);
         double trainTime = System.nanoTime() - startTrain;
         timeForTrain = trainTime;
 
+        ClassifierResults trainResults = runOptimalTraining(10);
         double[] times = new double[test.numInstances()];
 
         ClassifierResults cresults = new ClassifierResults();

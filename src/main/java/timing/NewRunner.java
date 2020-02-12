@@ -54,7 +54,7 @@ public class NewRunner {
         
         //Debug
         if (args.length == 0) {
-            Identifier = "id5";
+            Identifier = "reducedData";
             Resample = 0;
             ClassifierIndex = 4;
             DataPath = "data/Univariate_arff/ChlorineConcentration";
@@ -172,7 +172,7 @@ public class NewRunner {
     }
 
 
-    private static Classifier[] createClassifierArray() {
+    public static Classifier[] createClassifierArray() {
         Classifier[] classifiers = new Classifier[NumClassifiers];
         classifiers[0] = new IBk();
         classifiers[1] = new NaiveBayes();
