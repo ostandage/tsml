@@ -1,7 +1,6 @@
 package timing;
 
 import experiments.data.DatasetLists;
-import sun.java2d.pipe.SpanShapeRenderer;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -21,17 +20,37 @@ public class ScriptBuilder {
 //        String[] datasets = dataDir.list();
         String[] datasets = DatasetLists.tscProblems85;
 
-        for (String dataset : datasets) {
+        /*for (String dataset : datasets) {
             for (int classifier = 0; classifier < 24; classifier++) {
-                writeBsubScript(1, dataset, classifier, identifier);
+                writeBsubTimingScript(1, dataset, classifier, identifier);
             }
+        }*/
+
+        for (String dataset : datasets) {
+            writeBsubReducedDataScript("/gpfs/home/sjk17evu/Univariate_arff/" + dataset);
         }
 
         writeBashScript();
 
     }
 
-    public static void writeBsubScript(int numResamples, String dataset, int classifier, String id) throws Exception{
+    public static void writeBsubReducedDataScript(String datasetPath) throws Exception{
+        String[] pathSplit = datasetPath.split("/");
+
+        FileWriter fw = new FileWriter("scripts/" + pathSplit[pathSplit.length-1] + "-Reduced.bsub");
+        fw.append("#!/bin/csh\n");
+        fw.append("#BSUB -q long-eth\n");
+        fw.append("#BSUB -J " + pathSplit[pathSplit.length-1] + "-Reduced\n");
+        fw.append("#BSUB -oo output/output_%I.txt\n");
+        fw.append("#BSUB -eo error/error_%I.txt\n");
+        fw.append("#BSUB -R \"rusage[mem=6000]\"\n");
+        fw.append("#BSUB -M 10000\n");
+        fw.append("module add java/jdk1.8.0_51\n");
+        fw.append("java -jar -Xmx10000m ReducedExperiment.jar " + datasetPath + " /gpfs/scratch/sjk17evu/results/reducedData \n");
+        fw.flush();
+    }
+
+    public static void writeBsubTimingScript(int numResamples, String dataset, int classifier, String id) throws Exception{
         FileWriter fw = new FileWriter("scripts/" + dataset + "_" + classifier + ".bsub");
         fw.append("#!/bin/csh\n");
         fw.append("#BSUB -q long-eth\n");

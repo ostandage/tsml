@@ -15,10 +15,24 @@ public class ReducedTrainDataTesting {
 
     private static String DataPath;
     private static double PercentageTrainToUse;
+    private static boolean UseThreads = true;
+    private static String DatasetName;
+    private static String OutputPath;
+
 
     public static void main(String[] args) throws Exception {
-        DataPath = "data/Univariate_arff/ChlorineConcentration";
 
+        DataPath = "data/Univariate_arff/Beef";
+        OutputPath = "results/";
+
+        if (args.length > 0) {
+            DataPath = args[0];
+            OutputPath = args[1];
+            UseThreads = false;
+        }
+
+        String[] pathSplit = DataPath.split("/");
+        DatasetName = pathSplit[pathSplit.length-1];
 
         Instances dataTrain = loadData(DataPath, NewRunner.DatasetType.TRAIN);
         Instances dataTest = loadData(DataPath, NewRunner.DatasetType.TEST);
@@ -40,15 +54,19 @@ public class ReducedTrainDataTesting {
         Evaluation eval = new Evaluation(dataTrain);
 
         System.out.println("ClassifierIndex,ProportionTrainData,Accuracy,AvgClassifyTime,TotalClassifyTime,TrainTime");
-        FileWriter csv = new FileWriter("results/reducedData.csv");
+        FileWriter csv = new FileWriter( OutputPath + "reducedData" + DatasetName + ".csv");
         csv.append("ClassifierIndex,ProportionTrainData,Accuracy,AvgClassifyTime,TotalClassifyTime,TrainTime\n");
         csv.flush();
 
-        //Parallel
         ProcessClassifer[] threads = new ProcessClassifer[classifiers.length];
         for (int c = 0; c < classifiers.length; c++) {
             threads[c] = new ProcessClassifer(csv, c, classifiers, trainSplits, trainProportions, dataTest);
-            threads[c].start();
+            if (UseThreads) {
+                threads[c].start();
+            }
+            else {
+                threads[c].run();
+            }
         }
 
     }
