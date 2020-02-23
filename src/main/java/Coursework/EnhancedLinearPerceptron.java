@@ -26,8 +26,8 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
 //        System.out.println("W: " + elp.w[0] + ", " +  elp.w[1]);
 //        System.out.println("Done");
 
-        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TRAIN.arff");
-        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TEST.arff");
+        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/conn-bench-vowel-deterding/conn-bench-vowel-deterding_TRAIN.arff");
+        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/conn-bench-vowel-deterding/conn-bench-vowel-deterding_TEST.arff");
 
 //        elp.setUseOnlineAlgorithm(false);
 //        elp.buildClassifier(train);
@@ -44,7 +44,7 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
         EnhancedLinearPerceptron ms = new EnhancedLinearPerceptron();
         ms.setModelSelection(true);
         ms.setStandardiseAttributes(true);
-        ms.setMaxNoIterations(1000000);
+        ms.setMaxNoIterations(10000);
         ms.buildClassifier(train);
         Evaluation mse = new Evaluation(train);
         mse.evaluateModel(ms, test);
@@ -102,7 +102,8 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
             }
         }
         else {
-            Evaluation evaluation = new Evaluation(processedData);
+            Evaluation evaluationOnline = new Evaluation(processedData);
+            Evaluation evaluationOffline = new Evaluation(processedData);
             EnhancedLinearPerceptron online = new EnhancedLinearPerceptron();
             EnhancedLinearPerceptron offline = new EnhancedLinearPerceptron();
             offline.setUseOnlineAlgorithm(false);
@@ -110,11 +111,15 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
             offline.setMaxNoIterations(MaxNoIterations);
             Random rnd = new Random();
 
-            evaluation.crossValidateModel(online, processedData, 10, rnd);
-            double onlineError = evaluation.errorRate();
+            evaluationOnline.crossValidateModel(online, processedData, 10, rnd);
+            double onlineError = evaluationOnline.errorRate();
 
-            evaluation.crossValidateModel(offline, processedData, 10, rnd);
-            double offlineError = evaluation.errorRate();
+            evaluationOffline.crossValidateModel(offline, processedData, 10, rnd);
+            double offlineError = evaluationOffline.errorRate();
+
+            if (onlineError == offlineError) {
+                System.out.println("Same error rate");
+            }
 
             if (onlineError < offlineError) {
                 super.buildClassifier(processedData);

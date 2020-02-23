@@ -59,6 +59,7 @@ public class LinearPerceptron extends AbstractClassifier {
         capabilities.enable(Capabilities.Capability.NUMERIC_CLASS);
         capabilities.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
         capabilities.enable(Capabilities.Capability.BINARY_CLASS);
+        capabilities.enable(Capabilities.Capability.NOMINAL_CLASS);
         capabilities.setMinimumNumberInstances(0);
         return capabilities;
     }
