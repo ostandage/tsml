@@ -1,5 +1,12 @@
 //Want to have some sort of mechanism to configure the enhancedLinearPerceptron.
 //Seems very inefficient to be duplicating so much data. Maybe a quicker way with references / on the fly ignore.
+
+
+//Have an array of attributes for each ensemble to use, then copy the build / classify methods from the elp
+//class, and instead of looping through all attributes, only loop through those that are in the array.
+//More efficient and less messing around with copying / references. 
+
+
 package Coursework;
 
 import labs.WekaTools;
@@ -20,8 +27,8 @@ public class LinearPerceptronEnsemble extends AbstractClassifier {
 
     public static void main (String[] args) throws Exception {
         LinearPerceptronEnsemble lpe = new LinearPerceptronEnsemble();
-        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/conn-bench-vowel-deterding/conn-bench-vowel-deterding_TRAIN.arff");
-        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/conn-bench-vowel-deterding/conn-bench-vowel-deterding_TEST.arff");
+        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TRAIN.arff");
+        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TEST.arff");
 
         lpe.buildClassifier(train);
         Evaluation eval = new Evaluation(train);
@@ -46,6 +53,7 @@ public class LinearPerceptronEnsemble extends AbstractClassifier {
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        Ensemble = new EnhancedLinearPerceptron[EnsembleSize];
         Random rnd = new Random();
         int attrToRemove = data.numAttributes() - (int)(data.numAttributes() * AttributeSubsetProportion);
         RemovedEnsembleAttributes = new int[EnsembleSize][attrToRemove];
@@ -61,18 +69,28 @@ public class LinearPerceptronEnsemble extends AbstractClassifier {
             //Don't think we actually need to know which we use, just which we don't so can remove before classify / dist.
             TreeSet<Integer> attribs = new TreeSet<>();
             while (attribs.size() < attrToRemove) {
-                attribs.add(rnd.nextInt(data.numAttributes()));
+                int indexToAdd = rnd.nextInt(datas[i].numAttributes());
+                if (indexToAdd != datas[i].classIndex()) {
+                    attribs.add(indexToAdd);
+                }
             }
 
             //This should leave us an int array ordered largest to smallest so can remove from the data.
             for (int j = 0; j < attrToRemove; j++) {
-                RemovedEnsembleAttributes[i][j] = attribs.last();
+                RemovedEnsembleAttributes[i][j] = attribs.pollLast();
                 datas[i].deleteAttributeAt(RemovedEnsembleAttributes[i][j]);
+                if (RemovedEnsembleAttributes[i][j] < datas[i].classIndex()) {
+                    datas[i].setClassIndex(datas[i].classIndex() -1);
+                }
+
             }
+
 
             //Would be nice to remove this cast somehow...
             //This cast will break the overrides on build classifier etc :(
-            Ensemble[i] = (EnhancedLinearPerceptron) AbstractClassifier.makeCopy(BaseClassifier);
+            //Ensemble[i] = (EnhancedLinearPerceptron) AbstractClassifier.makeCopy(BaseClassifier);
+            Ensemble[i] = new EnhancedLinearPerceptron();
+            Ensemble[i].setMaxNoIterations(10000);
 
             Ensemble[i].buildClassifier(datas[i]);
         }
