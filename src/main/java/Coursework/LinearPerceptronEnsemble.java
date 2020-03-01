@@ -10,26 +10,31 @@
 package Coursework;
 
 import labs.WekaTools;
-import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Evaluation;
 import weka.core.Instance;
 import weka.core.Instances;
 
 import java.util.*;
 
-public class LinearPerceptronEnsemble extends AbstractClassifier {
+public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
 
     private int EnsembleSize;
     private double AttributeSubsetProportion;
     private EnhancedLinearPerceptron[] Ensemble;
-    private int[][] RemovedEnsembleAttributes;
-    private EnhancedLinearPerceptron BaseClassifier;
+    private boolean BuildThreaded;
 
     public static void main (String[] args) throws Exception {
         LinearPerceptronEnsemble lpe = new LinearPerceptronEnsemble();
         Instances train = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TRAIN.arff");
         Instances test = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TEST.arff");
 
+        lpe.setMaxNoIterations(100000000);
+        lpe.setEnsembleSize(1);
+        lpe.setAttributeSubsetProportion(1);
+        lpe.setStandardiseAttributes(false);
+        lpe.setUseOnlineAlgorithm(false);
+        lpe.setModelSelection(false);
+        lpe.BuildThreaded = true;
         lpe.buildClassifier(train);
         Evaluation eval = new Evaluation(train);
         eval.evaluateModel(lpe, test);
@@ -38,61 +43,96 @@ public class LinearPerceptronEnsemble extends AbstractClassifier {
     }
 
     public LinearPerceptronEnsemble() {
+        super();
         EnsembleSize = 50;
         AttributeSubsetProportion = 0.5;
 
-        //Default to Enhanced LP with default parameters.
-        BaseClassifier = new EnhancedLinearPerceptron();
-    }
-
-    public LinearPerceptronEnsemble (EnhancedLinearPerceptron baseClassifier) {
-        EnsembleSize = 50;
-        AttributeSubsetProportion = 0.5;
-        BaseClassifier = baseClassifier;
     }
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
         Ensemble = new EnhancedLinearPerceptron[EnsembleSize];
         Random rnd = new Random();
-        int attrToRemove = data.numAttributes() - (int)(data.numAttributes() * AttributeSubsetProportion);
-        RemovedEnsembleAttributes = new int[EnsembleSize][attrToRemove];
+        int attributesToDisable = data.numAttributes() - (int) (data.numAttributes() * AttributeSubsetProportion);
 
-        Instances[] datas = new Instances[EnsembleSize];
+        BuildThread[] bts = new BuildThread[EnsembleSize];
+
         for (int i = 0; i < EnsembleSize; i++) {
-            //Duplicate the data for each classifier.
-            datas[i] = new Instances(data);
 
-            //Find out what attributes each classifier will use.
-            //Priority queue?
-
-            //Don't think we actually need to know which we use, just which we don't so can remove before classify / dist.
-            TreeSet<Integer> attribs = new TreeSet<>();
-            while (attribs.size() < attrToRemove) {
-                int indexToAdd = rnd.nextInt(datas[i].numAttributes());
-                if (indexToAdd != datas[i].classIndex()) {
-                    attribs.add(indexToAdd);
-                }
+            Ensemble[i] = new EnhancedLinearPerceptron(data.numAttributes());
+            Ensemble[i].setMaxNoIterations(MaxNoIterations);
+            Ensemble[i].setStandardiseAttributes(StandardiseAttributes);
+            Ensemble[i].setModelSelection(ModelSelection);
+            Ensemble[i].setUseOnlineAlgorithm(UseOnlineAlgorithm);
+            Ensemble[i].setLearningRate(LearningRate);
+//
+//            //Work out which attributes this classifier will use.
+//            int count = 0;
+//            while (count < attributesToDisable) {
+//                int indexToDisable = rnd.nextInt(data.numAttributes());
+//                if (indexToDisable != data.classIndex()) {
+//                    Ensemble[i].disableAttribute(indexToDisable);
+//                    count++;
+//                }
+//            }
+//
+//            Ensemble[i].buildClassifier(data);
+            bts[i] = new BuildThread(i, data, rnd, attributesToDisable);
+            if (BuildThreaded) {
+                bts[i].start();
+            }
+            else {
+                bts[i].run();
             }
 
-            //This should leave us an int array ordered largest to smallest so can remove from the data.
-            for (int j = 0; j < attrToRemove; j++) {
-                RemovedEnsembleAttributes[i][j] = attribs.pollLast();
-                datas[i].deleteAttributeAt(RemovedEnsembleAttributes[i][j]);
-                if (RemovedEnsembleAttributes[i][j] < datas[i].classIndex()) {
-                    datas[i].setClassIndex(datas[i].classIndex() -1);
-                }
+        }
 
+        if (BuildThreaded) {
+            for (int i = 0; i < EnsembleSize; i++) {
+                bts[i].join();
             }
+        }
 
+    }
 
-            //Would be nice to remove this cast somehow...
-            //This cast will break the overrides on build classifier etc :(
-            //Ensemble[i] = (EnhancedLinearPerceptron) AbstractClassifier.makeCopy(BaseClassifier);
-            Ensemble[i] = new EnhancedLinearPerceptron();
-            Ensemble[i].setMaxNoIterations(10000);
+    private class BuildThread extends Thread {
 
-            Ensemble[i].buildClassifier(datas[i]);
+        private int i;
+        private Instances data;
+        private Random rnd;
+        private int attributesToDisable;
+
+        public BuildThread(int i, Instances data, Random rnd, int attributesToDisable) {
+
+            this.i = i;
+            this.data = data;
+            this.rnd = rnd;
+            this.attributesToDisable = attributesToDisable;
+        }
+
+        @Override
+        public void run() {
+            Ensemble[i] = new EnhancedLinearPerceptron(data.numAttributes());
+            Ensemble[i].setMaxNoIterations(MaxNoIterations);
+            Ensemble[i].setStandardiseAttributes(StandardiseAttributes);
+            Ensemble[i].setModelSelection(ModelSelection);
+            Ensemble[i].setUseOnlineAlgorithm(UseOnlineAlgorithm);
+            Ensemble[i].setLearningRate(LearningRate);
+
+            //Work out which attributes this classifier will use.
+            int count = 0;
+            while (count < attributesToDisable) {
+                int indexToDisable = rnd.nextInt(data.numAttributes());
+                if (indexToDisable != data.classIndex()) {
+                    Ensemble[i].disableAttribute(indexToDisable);
+                    count++;
+                }
+            }
+            try {
+            Ensemble[i].buildClassifier(data);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -110,18 +150,9 @@ public class LinearPerceptronEnsemble extends AbstractClassifier {
 
     @Override
     public double[] distributionForInstance(Instance data) throws Exception {
-
-        Instance[] datas = new Instance[EnsembleSize];
         double[] distribution = new double[data.numClasses()];
-
         for (int i = 0; i < EnsembleSize; i++) {
-            datas[i] = (Instance) data.copy();
-
-            for (int j = 0; j < RemovedEnsembleAttributes[i].length; j++) {
-                datas[i].deleteAttributeAt(RemovedEnsembleAttributes[i][j]);
-            }
-
-            double[] singleDist = Ensemble[i].distributionForInstance(datas[i]);
+            double[] singleDist = Ensemble[i].distributionForInstance(data);
             for (int j = 0; j < data.numClasses(); j++) {
                 distribution[j] += singleDist[j];
             }

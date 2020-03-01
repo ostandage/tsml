@@ -5,10 +5,7 @@
 package Coursework;
 
 import labs.WekaTools;
-import org.apache.commons.math3.analysis.function.Max;
-import scala.tools.reflect.Eval;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Capabilities;
 import weka.core.Instance;
@@ -20,28 +17,48 @@ public class LinearPerceptron extends AbstractClassifier {
 
     protected int MaxNoIterations;
     protected double Bias;
-    protected double LearingRate;
+    protected double LearningRate;
+    protected boolean[] AttributeDisabled;
+    protected int NumAttrDisabled;
+
 
     //change back to private.
-    public double[] w;
+    protected double[] w;
 
     public static void main (String[] args) throws Exception{
-        Instances part1Data = WekaTools.loadClassificationData("data/labsdata/part1.arff");
-        part1Data.setClassIndex(part1Data.numAttributes() -1);
         LinearPerceptron lp = new LinearPerceptron();
-        lp.setMaxNoIterations(100000000);
-        lp.buildClassifier(part1Data);
-        System.out.println("W: " + lp.w[0] + ", " +  lp.w[1]);
-        System.out.println("Done");
-
-        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TRAIN.arff");
-        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TEST.arff");
 
 
+//        Instances part1Data = WekaTools.loadClassificationData("data/labsdata/part1.arff");
+//        lp.setMaxNoIterations(100000000);
+//        lp.buildClassifier(part1Data);
+//        System.out.println("W: " + lp.w[0] + ", " +  lp.w[1]);
+//        System.out.println("Done");
+
+        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TRAIN.arff");
+        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TEST.arff");
+
+        //MaxValue =         2147483647
+        //lp.setMaxNoIterations(100000000);
         lp.buildClassifier(train);
+        lp.setLearningRate(1);
         Evaluation eval = new Evaluation(train);
         eval.evaluateModel(lp, test);
+        System.out.println(eval.toSummaryString());
         System.out.println("Error Rate: " + eval.errorRate());
+        //100000000 gives accuracy of 64.4385%
+
+        //100000 gives accuracy of 77.0053%
+//        MultilayerPerceptron mlp = new MultilayerPerceptron();
+//        mlp.setLearningRate(1);
+//        mlp.setHiddenLayers("0");
+//        mlp.setGUI(false);
+//        mlp.setTrainingTime(100000);
+//        mlp.buildClassifier(train);
+//        Evaluation eval2 = new Evaluation(train);
+//        eval2.evaluateModel(mlp, test);
+//        System.out.println(eval2.toSummaryString());
+//        System.out.println("Error Rate: " + eval2.errorRate());
 
     }
 
@@ -49,25 +66,53 @@ public class LinearPerceptron extends AbstractClassifier {
     public LinearPerceptron () {
         MaxNoIterations = Integer.MAX_VALUE;
         Bias = 0;
-        LearingRate = 1;
+        LearningRate = 1;
+    }
+
+    public LinearPerceptron (int numAttributes) {
+        MaxNoIterations = Integer.MAX_VALUE;
+        Bias = 0;
+        LearningRate = 1;
+        AttributeDisabled = new boolean[numAttributes];
+    }
+
+
+    public boolean disableAttribute(int attrIndex) {
+        NumAttrDisabled++;
+        return AttributeDisabled[attrIndex] = true;
+    }
+
+    public boolean enableAttributes(int attrIndex) {
+        NumAttrDisabled--;
+        return AttributeDisabled[attrIndex] = false;
     }
 
     @Override
     public Capabilities getCapabilities() {
         Capabilities capabilities = super.getCapabilities();
         capabilities.disableAll();
-        capabilities.enable(Capabilities.Capability.NUMERIC_CLASS);
+        //capabilities.enable(Capabilities.Capability.NUMERIC_CLASS);
         capabilities.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
         capabilities.enable(Capabilities.Capability.BINARY_CLASS);
-        capabilities.enable(Capabilities.Capability.NOMINAL_CLASS);
+        //capabilities.enable(Capabilities.Capability.NOMINAL_CLASS);
         capabilities.enable(Capabilities.Capability.BINARY_ATTRIBUTES);
-        capabilities.setMinimumNumberInstances(0);
+        capabilities.setMinimumNumberInstances(1);
         return capabilities;
     }
 
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        if (AttributeDisabled == null) {
+            AttributeDisabled = new boolean[data.numAttributes()];
+        }
+        else if (AttributeDisabled.length != data.numAttributes()) {
+            //If we use the same classifier on a different dataset.
+            AttributeDisabled = new boolean[data.numAttributes()];
+        }
+
+        //Disable the class value as a predictor.
+        disableAttribute(data.classIndex());
 
         getCapabilities().testWithFail(data);
         //Doesn't seem to work well random initial vector.
@@ -76,19 +121,26 @@ public class LinearPerceptron extends AbstractClassifier {
         for (int i = 0; i < w.length; i++) {
             //Include -ve random?
             w[i] = rnd.nextInt();
+            //w[i] = 1;
         }
 
-//        w[0] = 1;
-//        w[1] = 1;
 
         int iteration = 0;
         do {
             iteration++;
             for (int i = 0; i < data.numInstances(); i++) {
                 double y = calculateYi(data.instance(i));
+                double t = 1;
+                if (data.instance(i).classValue() == 0) {
+                    t = -1;
+                }
 
                 for (int j = 0; j < data.numAttributes(); j++) {
-                    w[j] = w[j] + (0.5 * LearingRate * (data.instance(i).classValue() - y) * data.instance(i).value(j));
+                    if (!AttributeDisabled[j]) {
+                        //                                  cv - pred
+                        double deltaW = (0.5 * LearningRate * (t - y) * data.instance(i).value(j));
+                        w[j] = w[j] + deltaW;
+                    }
                 }
 
             }
@@ -117,13 +169,22 @@ public class LinearPerceptron extends AbstractClassifier {
 
     @Override
     public double classifyInstance(Instance instance) throws Exception {
-        return calculateYi(instance);
+        double y =  calculateYi(instance);
+        if (y == 1.0) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+
     }
 
     protected double calculateYi(Instance data) {
         double yU = 0;
         for (int c = 0; c < data.numAttributes(); c++) {
-            yU = yU + (data.value(c) * w[c]);
+            if (!AttributeDisabled[c]) {
+                yU = yU + (data.value(c) * w[c]);
+            }
         }
         double y = 1;
         if (yU < 0) {
@@ -140,7 +201,7 @@ public class LinearPerceptron extends AbstractClassifier {
         this.Bias = bias;
     }
 
-    public void setLearingRate(double learingRate) {
-        this.LearingRate = learingRate;
+    public void setLearningRate(double learningRate) {
+        this.LearningRate = learningRate;
     }
 }

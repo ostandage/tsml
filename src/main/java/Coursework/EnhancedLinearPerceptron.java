@@ -1,7 +1,6 @@
 package Coursework;
 
 import labs.WekaTools;
-import org.apache.commons.math3.analysis.function.Max;
 import weka.classifiers.Evaluation;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -10,9 +9,9 @@ import java.util.Random;
 
 public class EnhancedLinearPerceptron extends LinearPerceptron {
 
-    private boolean StandardiseAttributes;
-    private boolean UseOnlineAlgorithm;
-    private boolean ModelSelection;
+    protected boolean StandardiseAttributes;
+    protected boolean UseOnlineAlgorithm;
+    protected boolean ModelSelection;
     private double[] Mean;
     private double[] StdDev;
 
@@ -26,8 +25,8 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
 //        System.out.println("W: " + elp.w[0] + ", " +  elp.w[1]);
 //        System.out.println("Done");
 
-        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/conn-bench-vowel-deterding/conn-bench-vowel-deterding_TRAIN.arff");
-        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/conn-bench-vowel-deterding/conn-bench-vowel-deterding_TEST.arff");
+        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TRAIN.arff");
+        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TEST.arff");
 
 //        elp.setUseOnlineAlgorithm(false);
 //        elp.buildClassifier(train);
@@ -42,12 +41,14 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
 
         System.out.println("Model Selection");
         EnhancedLinearPerceptron ms = new EnhancedLinearPerceptron();
-        ms.setModelSelection(true);
-        ms.setStandardiseAttributes(true);
-        ms.setMaxNoIterations(10000);
+        ms.setModelSelection(false);
+        ms.setStandardiseAttributes(false);
+        ms.setUseOnlineAlgorithm(true);
+        ms.setMaxNoIterations(100000000);
         ms.buildClassifier(train);
         Evaluation mse = new Evaluation(train);
         mse.evaluateModel(ms, test);
+        System.out.println(mse.toSummaryString());
         System.out.println("Error Rate: " + mse.errorRate());
     }
 
@@ -58,10 +59,27 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
         ModelSelection = false;
     }
 
+    public EnhancedLinearPerceptron(int numAttributes) {
+        super(numAttributes);
+        StandardiseAttributes = true;
+        UseOnlineAlgorithm = true;
+        ModelSelection = false;
+    }
+
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
         //Copy so as not to standardise original data via reference.
+        if (AttributeDisabled == null) {
+            AttributeDisabled = new boolean[data.numAttributes()];
+        }
+        else if (AttributeDisabled.length != data.numAttributes()) {
+            //If we use the same classifier on a different dataset.
+            AttributeDisabled = new boolean[data.numAttributes()];
+        }
+
+        disableAttribute(data.classIndex());
+
         Instances processedData = new Instances(data);
 
 
@@ -69,27 +87,32 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
             //calculate mean of each attribute.
             Mean = new double[data.numAttributes()];
             for (int a = 0; a < data.numAttributes(); a++) {
-                for (int i = 0; i < data.numInstances(); i++) {
-                    Mean[a] = Mean[a] + data.get(i).value(a);
+                if (!AttributeDisabled[a]) {
+                    for (int i = 0; i < data.numInstances(); i++) {
+                        Mean[a] = Mean[a] + data.get(i).value(a);
+                    }
+                    Mean[a] = Mean[a] / (data.numInstances() - NumAttrDisabled);
                 }
-                Mean[a] = Mean[a] / data.numInstances();
+                else {
+                    Mean[a] = 0;
+                }
             }
 
             //calculate std dev of each attribute.
             StdDev = new double[data.numAttributes()];
             for (int a = 0; a < data.numAttributes(); a++) {
-                for (int i = 0; i < data.numInstances(); i++) {
-                    StdDev[a] = StdDev[a] + Math.pow((data.get(i).value(a) - Mean[a]), 2);
+                if (!AttributeDisabled[a]) {
+                    for (int i = 0; i < data.numInstances(); i++) {
+                        StdDev[a] = StdDev[a] + Math.pow((data.get(i).value(a) - Mean[a]), 2);
+                    }
+                    StdDev[a] = StdDev[a] / (data.numInstances() - NumAttrDisabled);
                 }
-                StdDev[a] = StdDev[a] / data.numInstances();
+                else {
+                    StdDev[a] = 0;
+                }
             }
 
             for (int i = 0; i < data.numInstances(); i++) {
-//                for (int a = 0; a < data.numAttributes()-1; a++) {
-//                    double x = processedData.get(i).value(a);
-//                    x = (x-Mean[a]) / StdDev[a];
-//                    processedData.get(i).setValue(a, x);
-//                }
                 standardiseInstance(processedData.get(i));
             }
         }
@@ -134,6 +157,17 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
     }
 
     private void buildOfflineClassifier(Instances data) throws Exception {
+        if (AttributeDisabled == null) {
+            AttributeDisabled = new boolean[data.numAttributes()];
+        }
+        else if (AttributeDisabled.length != data.numAttributes()) {
+            //If we use the same classifier on a different dataset.
+            AttributeDisabled = new boolean[data.numAttributes()];
+        }
+
+        //Disable the class value as a predictor.
+        disableAttribute(data.classIndex());
+
         getCapabilities().testWithFail(data);
 
         w = new double[data.numAttributes()];
@@ -151,13 +185,22 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
 
             for (int i = 0; i < data.numInstances(); i++) {
                 double y = calculateYi(data.instance(i)) ;
+                double t = 1;
+                if (data.instance(i).classValue() == 0) {
+                    t = -1;
+                }
+
                 for (int a = 0; a < data.numAttributes(); a++) {
-                    deltaW[a] = deltaW[a] + (0.5 * LearingRate * (data.instance(i).classValue() - y) * data.instance(i).value(a));
+                    if (!AttributeDisabled[a]) {
+                        deltaW[a] = deltaW[a] + (0.5 * LearningRate * (t - y) * data.instance(i).value(a));
+                    }
                 }
             }
 
             for (int a = 0; a < data.numAttributes(); a++) {
-                w[a] = w[a] + deltaW[a];
+                if (!AttributeDisabled[a]) {
+                    w[a] = w[a] + deltaW[a];
+                }
             }
 
             boolean madeFullPass = false;
@@ -183,25 +226,19 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
 
     }
 
-
-
     private void standardiseInstance(Instance instance) {
-        for (int a = 0; a < instance.numAttributes()-1; a++) {
-            double x = instance.value(a);
-            x = (x-Mean[a]) / StdDev[a];
-            instance.setValue(a, x);
+        for (int a = 0; a < instance.numAttributes(); a++) {
+            if (!AttributeDisabled[a]) {
+                double x = instance.value(a);
+                x = (x - Mean[a]) / StdDev[a];
+                instance.setValue(a, x);
+            }
         }
     }
 
     @Override
     public double classifyInstance(Instance instance) throws Exception {
         if (StandardiseAttributes) {
-            //Copy instance first??
-//            for (int a = 0; a < instance.numAttributes() -1; a++) {
-//                double x = instance.value(a);
-//                x = (x-Mean[a]) / StdDev[a];
-//                instance.setValue(a, x);
-//            }
             standardiseInstance(instance);
         }
 
