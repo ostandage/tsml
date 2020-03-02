@@ -4,7 +4,12 @@
 
 //Have an array of attributes for each ensemble to use, then copy the build / classify methods from the elp
 //class, and instead of looping through all attributes, only loop through those that are in the array.
-//More efficient and less messing around with copying / references. 
+//More efficient and less messing around with copying / references.
+
+
+//Disable attributes after build. Clone the base classifier. Means we only have to build one classifier for the ensemble.
+//Could just enable and disable on the fly from an array. Store class value in classifier and have a reset method.
+
 
 
 package Coursework;

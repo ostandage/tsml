@@ -1,6 +1,9 @@
 //Need to confirm:
-//      - Start with random vector.
-//      - Bias term = learning rate.
+//      - Bias term = y offset - allows for shifting. Could be useful for -1 and 1 class vals.
+//      - What sort of accuracy should we be getting?? Best so far is ~64% with basic LP, max iterations, LR:1.
+
+
+//Classify instance should return one of the class values. Change part 1 data to be 0 and 1 and check
 
 package Coursework;
 
