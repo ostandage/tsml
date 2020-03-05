@@ -1,6 +1,5 @@
 //Need to confirm:
 //      - Bias term = y offset - allows for shifting. Could be useful for -1 and 1 class vals.
-//      - What sort of accuracy should we be getting?? Best so far is ~64% with basic LP, max iterations, LR:1.
 
 
 //Classify instance should return one of the class values. Change part 1 data to be 0 and 1 and check
@@ -42,7 +41,7 @@ public class LinearPerceptron extends AbstractClassifier {
         Instances test = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TEST.arff");
 
         //MaxValue =         2147483647
-        //lp.setMaxNoIterations(100000000);
+        lp.setMaxNoIterations(100000000);
         lp.buildClassifier(train);
         lp.setLearningRate(1);
         Evaluation eval = new Evaluation(train);
@@ -94,10 +93,8 @@ public class LinearPerceptron extends AbstractClassifier {
     public Capabilities getCapabilities() {
         Capabilities capabilities = super.getCapabilities();
         capabilities.disableAll();
-        //capabilities.enable(Capabilities.Capability.NUMERIC_CLASS);
         capabilities.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
         capabilities.enable(Capabilities.Capability.BINARY_CLASS);
-        //capabilities.enable(Capabilities.Capability.NOMINAL_CLASS);
         capabilities.enable(Capabilities.Capability.BINARY_ATTRIBUTES);
         capabilities.setMinimumNumberInstances(1);
         return capabilities;
@@ -106,6 +103,8 @@ public class LinearPerceptron extends AbstractClassifier {
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        getCapabilities().testWithFail(data);
+
         if (AttributeDisabled == null) {
             AttributeDisabled = new boolean[data.numAttributes()];
         }
@@ -117,7 +116,7 @@ public class LinearPerceptron extends AbstractClassifier {
         //Disable the class value as a predictor.
         disableAttribute(data.classIndex());
 
-        getCapabilities().testWithFail(data);
+
         //Doesn't seem to work well random initial vector.
         w = new double[data.numAttributes()];
         Random rnd = new Random();

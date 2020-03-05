@@ -25,8 +25,7 @@ public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
 
     private int EnsembleSize;
     private double AttributeSubsetProportion;
-    private EnhancedLinearPerceptron[] Ensemble;
-    private boolean BuildThreaded;
+    private boolean[][] AttributesToDisable;
 
     public static void main (String[] args) throws Exception {
         LinearPerceptronEnsemble lpe = new LinearPerceptronEnsemble();
@@ -34,136 +33,106 @@ public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
         Instances test = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TEST.arff");
 
         lpe.setMaxNoIterations(100000000);
-        lpe.setEnsembleSize(1);
-        lpe.setAttributeSubsetProportion(1);
-        lpe.setStandardiseAttributes(false);
-        lpe.setUseOnlineAlgorithm(false);
-        lpe.setModelSelection(false);
-        lpe.BuildThreaded = true;
+        lpe.setAttributeSubsetProportion(0.5);
+        lpe.setEnsembleSize(50);
+        lpe.setStandardiseAttributes(true);
+        lpe.setModelSelection(true);
         lpe.buildClassifier(train);
         Evaluation eval = new Evaluation(train);
         eval.evaluateModel(lpe, test);
         System.out.println(eval.toSummaryString());
         System.out.println("Error Rate: " + eval.errorRate());
+
     }
 
     public LinearPerceptronEnsemble() {
         super();
         EnsembleSize = 50;
         AttributeSubsetProportion = 0.5;
-
     }
+
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        Ensemble = new EnhancedLinearPerceptron[EnsembleSize];
-        Random rnd = new Random();
-        int attributesToDisable = data.numAttributes() - (int) (data.numAttributes() * AttributeSubsetProportion);
+        getCapabilities().testWithFail(data);
 
-        BuildThread[] bts = new BuildThread[EnsembleSize];
+        if (AttributeDisabled == null) {
+            AttributeDisabled = new boolean[data.numAttributes()];
+        }
+        else if (AttributeDisabled.length != data.numAttributes()) {
+            //If we use the same classifier on a different dataset.
+            AttributeDisabled = new boolean[data.numAttributes()];
+        }
+
+        Random rnd = new Random();
+        int numAttributesToDisable = data.numAttributes() - (int) (data.numAttributes() * AttributeSubsetProportion);
+        AttributesToDisable = new boolean[EnsembleSize][data.numAttributes()];
+
 
         for (int i = 0; i < EnsembleSize; i++) {
 
-            Ensemble[i] = new EnhancedLinearPerceptron(data.numAttributes());
-            Ensemble[i].setMaxNoIterations(MaxNoIterations);
-            Ensemble[i].setStandardiseAttributes(StandardiseAttributes);
-            Ensemble[i].setModelSelection(ModelSelection);
-            Ensemble[i].setUseOnlineAlgorithm(UseOnlineAlgorithm);
-            Ensemble[i].setLearningRate(LearningRate);
-//
-//            //Work out which attributes this classifier will use.
-//            int count = 0;
-//            while (count < attributesToDisable) {
-//                int indexToDisable = rnd.nextInt(data.numAttributes());
-//                if (indexToDisable != data.classIndex()) {
-//                    Ensemble[i].disableAttribute(indexToDisable);
-//                    count++;
-//                }
-//            }
-//
-//            Ensemble[i].buildClassifier(data);
-            bts[i] = new BuildThread(i, data, rnd, attributesToDisable);
-            if (BuildThreaded) {
-                bts[i].start();
-            }
-            else {
-                bts[i].run();
-            }
-
-        }
-
-        if (BuildThreaded) {
-            for (int i = 0; i < EnsembleSize; i++) {
-                bts[i].join();
-            }
-        }
-
-    }
-
-    private class BuildThread extends Thread {
-
-        private int i;
-        private Instances data;
-        private Random rnd;
-        private int attributesToDisable;
-
-        public BuildThread(int i, Instances data, Random rnd, int attributesToDisable) {
-
-            this.i = i;
-            this.data = data;
-            this.rnd = rnd;
-            this.attributesToDisable = attributesToDisable;
-        }
-
-        @Override
-        public void run() {
-            Ensemble[i] = new EnhancedLinearPerceptron(data.numAttributes());
-            Ensemble[i].setMaxNoIterations(MaxNoIterations);
-            Ensemble[i].setStandardiseAttributes(StandardiseAttributes);
-            Ensemble[i].setModelSelection(ModelSelection);
-            Ensemble[i].setUseOnlineAlgorithm(UseOnlineAlgorithm);
-            Ensemble[i].setLearningRate(LearningRate);
-
-            //Work out which attributes this classifier will use.
+            //Work out which attributes this classifier will (won't) use.
             int count = 0;
-            while (count < attributesToDisable) {
+            while (count < numAttributesToDisable) {
                 int indexToDisable = rnd.nextInt(data.numAttributes());
                 if (indexToDisable != data.classIndex()) {
-                    Ensemble[i].disableAttribute(indexToDisable);
+                    AttributesToDisable[i][indexToDisable] = true;
                     count++;
                 }
             }
-            try {
-            Ensemble[i].buildClassifier(data);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            AttributesToDisable[i][data.classIndex()] = true;
         }
+
+        super.buildClassifier(data);
     }
 
     @Override
     public double classifyInstance(Instance data) throws Exception {
-        double[] dist = distributionForInstance(data);
-        int curMaxIndex = 0;
-        for (int i = 1; i < dist.length; i++) {
-            if (dist[i] > dist[curMaxIndex]) {
-                curMaxIndex = i;
+        int[] classPredictions = new int[data.numClasses()];
+        for (int e = 0; e < EnsembleSize; e++) {
+            for(int attr = 0; attr < AttributesToDisable[e].length; attr++) {
+                AttributeDisabled[attr] = AttributesToDisable[e][attr];
+            }
+
+            double prediction = super.classifyInstance(data);
+            classPredictions[(int) prediction]++;
+        }
+
+        int curMax = classPredictions[0];
+        for (int c = 1; c < classPredictions.length; c++) {
+            if (classPredictions[c] > classPredictions[curMax]) {
+                curMax = c;
             }
         }
-        return dist[curMaxIndex];
+
+        return curMax;
+        //        double[] dist = distributionForInstance(data);
+//        int curMaxIndex = 0;
+//        for (int i = 1; i < dist.length; i++) {
+//            if (dist[i] > dist[curMaxIndex]) {
+//                curMaxIndex = i;
+//            }
+//        }
+//        return dist[curMaxIndex];
     }
 
     @Override
-    public double[] distributionForInstance(Instance data) throws Exception {
-        double[] distribution = new double[data.numClasses()];
-        for (int i = 0; i < EnsembleSize; i++) {
-            double[] singleDist = Ensemble[i].distributionForInstance(data);
-            for (int j = 0; j < data.numClasses(); j++) {
-                distribution[j] += singleDist[j];
+    public double[] distributionForInstance(Instance instance) throws Exception {
+        double[] distribution = new double[instance.numClasses()];
+
+
+        for (int e = 0; e < EnsembleSize; e++) {
+
+            for(int attr = 0; attr < AttributesToDisable[e].length; attr++) {
+                AttributeDisabled[attr] = AttributesToDisable[e][attr];
             }
+
+            double prediction = super.classifyInstance(instance);
+            distribution[(int) prediction]++;
+
         }
 
-        for (int i = 0; i < data.numClasses(); i++) {
+        for (int i = 0; i < instance.numClasses(); i++) {
             distribution[i] = distribution[i] / EnsembleSize;
         }
         return distribution;

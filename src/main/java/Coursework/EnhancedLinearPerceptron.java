@@ -14,6 +14,8 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
     protected boolean ModelSelection;
     private double[] Mean;
     private double[] StdDev;
+    private int NumCVFoldsForModelSelection;
+    private boolean DataAlreadyStandardised;
 
     public static void main (String[] args) throws Exception{
 //        Instances part1Data = WekaTools.loadClassificationData("data/labsdata/part1.arff");
@@ -45,6 +47,7 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
         ms.setStandardiseAttributes(false);
         ms.setUseOnlineAlgorithm(true);
         ms.setMaxNoIterations(100000000);
+        ms.setNumCVFoldsForModelSelection(5);
         ms.buildClassifier(train);
         Evaluation mse = new Evaluation(train);
         mse.evaluateModel(ms, test);
@@ -57,6 +60,7 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
         StandardiseAttributes = true;
         UseOnlineAlgorithm = true;
         ModelSelection = false;
+        NumCVFoldsForModelSelection = 10;
     }
 
     public EnhancedLinearPerceptron(int numAttributes) {
@@ -64,11 +68,14 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
         StandardiseAttributes = true;
         UseOnlineAlgorithm = true;
         ModelSelection = false;
+        NumCVFoldsForModelSelection = 10;
     }
 
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        getCapabilities().testWithFail(data);
+
         //Copy so as not to standardise original data via reference.
         if (AttributeDisabled == null) {
             AttributeDisabled = new boolean[data.numAttributes()];
@@ -80,10 +87,11 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
 
         disableAttribute(data.classIndex());
 
+
         Instances processedData = new Instances(data);
 
 
-        if (StandardiseAttributes) {
+        if (StandardiseAttributes && !DataAlreadyStandardised) {
             //calculate mean of each attribute.
             Mean = new double[data.numAttributes()];
             for (int a = 0; a < data.numAttributes(); a++) {
@@ -132,12 +140,27 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
             offline.setUseOnlineAlgorithm(false);
             online.setMaxNoIterations(MaxNoIterations);
             offline.setMaxNoIterations(MaxNoIterations);
+            online.NumAttrDisabled = NumAttrDisabled;
+            offline.NumAttrDisabled = NumAttrDisabled;
+            online.AttributeDisabled = this.AttributeDisabled;
+            offline.AttributeDisabled = this.AttributeDisabled;
+            if (StandardiseAttributes) {
+                online.setStandardiseAttributes(true);
+                online.DataAlreadyStandardised = true;
+                online.Mean = this.Mean;
+                online.StdDev = this.StdDev;
+
+                offline.setStandardiseAttributes(true);
+                offline.DataAlreadyStandardised = true;
+                offline.Mean = this.Mean;
+                offline.StdDev = this.StdDev;
+            }
             Random rnd = new Random();
 
-            evaluationOnline.crossValidateModel(online, processedData, 10, rnd);
+            evaluationOnline.crossValidateModel(online, processedData, NumCVFoldsForModelSelection, rnd);
             double onlineError = evaluationOnline.errorRate();
 
-            evaluationOffline.crossValidateModel(offline, processedData, 10, rnd);
+            evaluationOffline.crossValidateModel(offline, processedData, NumCVFoldsForModelSelection, rnd);
             double offlineError = evaluationOffline.errorRate();
 
             if (onlineError == offlineError) {
@@ -146,6 +169,7 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
 
             if (onlineError < offlineError) {
                 super.buildClassifier(processedData);
+
                 System.out.println("Use online");
             }
             else {
@@ -255,5 +279,13 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
 
     public void setModelSelection(boolean modelSelection) {
         ModelSelection = modelSelection;
+    }
+
+    public int getNumCVFoldsForModelSelection() {
+        return NumCVFoldsForModelSelection;
+    }
+
+    public void setNumCVFoldsForModelSelection(int numCVFoldsForModelSelection) {
+        NumCVFoldsForModelSelection = numCVFoldsForModelSelection;
     }
 }
