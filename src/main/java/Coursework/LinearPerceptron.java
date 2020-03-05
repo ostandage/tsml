@@ -41,9 +41,10 @@ public class LinearPerceptron extends AbstractClassifier {
         Instances test = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TEST.arff");
 
         //MaxValue =         2147483647
-        lp.setMaxNoIterations(100000000);
+        lp.setMaxNoIterations(1000000);
         lp.buildClassifier(train);
         lp.setLearningRate(1);
+        lp.setBiasTerm(1);
         Evaluation eval = new Evaluation(train);
         eval.evaluateModel(lp, test);
         System.out.println(eval.toSummaryString());
@@ -123,7 +124,6 @@ public class LinearPerceptron extends AbstractClassifier {
         for (int i = 0; i < w.length; i++) {
             //Include -ve random?
             w[i] = rnd.nextInt();
-            //w[i] = 1;
         }
 
 
@@ -188,6 +188,7 @@ public class LinearPerceptron extends AbstractClassifier {
                 yU = yU + (data.value(c) * w[c]);
             }
         }
+        yU = yU + Bias;
         double y = 1;
         if (yU < 0) {
             y = -1;
@@ -199,7 +200,7 @@ public class LinearPerceptron extends AbstractClassifier {
         this.MaxNoIterations = maxNoIterations;
     }
 
-    public void setConstantTerm(Double bias) {
+    public void setBiasTerm(double bias) {
         this.Bias = bias;
     }
 

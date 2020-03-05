@@ -29,11 +29,12 @@ public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
 
     public static void main (String[] args) throws Exception {
         LinearPerceptronEnsemble lpe = new LinearPerceptronEnsemble();
-        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TRAIN.arff");
-        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/planning/planning_TEST.arff");
+        Instances train = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TRAIN.arff");
+        Instances test = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TEST.arff");
 
         lpe.setMaxNoIterations(100000000);
         lpe.setAttributeSubsetProportion(0.5);
+        lpe.setNumCVFoldsForModelSelection(5);
         lpe.setEnsembleSize(50);
         lpe.setStandardiseAttributes(true);
         lpe.setModelSelection(true);
