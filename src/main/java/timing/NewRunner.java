@@ -6,6 +6,7 @@
 package timing;
 
 import evaluation.storage.ClassifierResults;
+import statistics.simulators.ShapeletModel;
 import timeseriesweka.classifiers.dictionary_based.*;
 import timeseriesweka.classifiers.distance_based.*;
 import timeseriesweka.classifiers.distance_based.elastic_ensemble.DTW1NN;
@@ -24,10 +25,9 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import weka.core.Instances;
+import weka_extras.classifiers.ensembles.HIVE_COTE;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
 import java.util.ArrayList;
 
 public class NewRunner {
@@ -53,12 +53,14 @@ public class NewRunner {
     // 3    DataPath
     // 4    ResultsPath
     public static void main(String[] args) {
-        
+        //To postprocess HC, set Identifier to folder name, then set dataPath to dataset, and classifier index to 25.
+
+
         //Debug
         if (args.length == 0) {
-            Identifier = "resamples";
-            Resample = 4;
-            ClassifierIndex = 0;
+            Identifier = "20200116";
+            Resample = 0;
+            ClassifierIndex = 25;
             DataPath = "data/Univariate_arff/ChlorineConcentration";
             ResultsPath = "results";
             NumThreads = 4;
@@ -84,8 +86,7 @@ public class NewRunner {
         File outputPath = new File(ResultsPath + "/" + Identifier);
         outputPath.mkdir();
 
-        System.out.println(dataTrain.relationName());
-        System.out.println(classifiers[ClassifierIndex].getClass().getSimpleName());
+
 
         if (ClassifierIndex == 25) {
             //Hive-Cote
@@ -106,8 +107,44 @@ public class NewRunner {
                 System.out.println("ERROR: Something went wrong in Hivecote.");
                 e.printStackTrace();
             }
+
+            //Need to add up the timing stuff.
+
+            String[] dataPathSplit = DataPath.split("/");
+            String dataset = dataPathSplit[dataPathSplit.length-1];
+            String[] hcClassifierNames = {"ElasticEnsemble", "ShapeletTransformClassifier", "RISE", "BOSS", "TSF"};
+
+
+            double avgClassifyTime = 0;
+            double totalClassifyTime = 0;
+            double trainTime = 0;
+            try {
+                for (String classifier : hcClassifierNames) {
+                    File timingFile = new File(ResultsPath + "/" + Identifier + "/" + classifier + "/Predictions/" + dataset + "/timing" + Resample + ".csv");
+
+                    BufferedReader csvRead = new BufferedReader(new FileReader(timingFile));
+                    csvRead.readLine();
+                    String[] dataLine = csvRead.readLine().split(",");
+                    avgClassifyTime = avgClassifyTime + Double.parseDouble(dataLine[3]);
+                    totalClassifyTime = totalClassifyTime + Double.parseDouble(dataLine[4]);
+                    trainTime = trainTime + Double.parseDouble(dataLine[5]);
+
+                }
+
+                FileWriter timingCSV = new FileWriter(ResultsPath + "/" + Identifier + "/HIVE-COTE/Predictions/" + dataset + "/timing" + Resample + ".csv");
+                timingCSV.append("Classifier,Dataset,Resample,Average Classify Time,Total Classify Time,Train Time" + "\n");
+                timingCSV.append("HIVE-COTE," + dataset + "," + Resample + "," + avgClassifyTime + "," + totalClassifyTime + "," + trainTime + "\n");
+                timingCSV.flush();
+                timingCSV.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+
         }
         else {
+            System.out.println(dataTrain.relationName());
+            System.out.println(classifiers[ClassifierIndex].getClass().getSimpleName());
             try {
                 TimingExperiment t = new TimingExperiment(classifiers[ClassifierIndex], dataTest, dataTrain);
 
@@ -129,6 +166,7 @@ public class NewRunner {
                 System.out.println(output);
                 timingCSV.append(output);
                 timingCSV.flush();
+                timingCSV.close();
 
                 cresults.setClassifierName(classifiers[ClassifierIndex].getClass().getSimpleName());
                 cresults.setDatasetName(dataTrain.relationName());
