@@ -20,15 +20,15 @@ public class ScriptBuilder {
 //        String[] datasets = dataDir.list();
         String[] datasets = DatasetLists.tscProblems85;
 
-        /*for (String dataset : datasets) {
-            for (int classifier = 0; classifier < 24; classifier++) {
-                writeBsubTimingScript(1, dataset, classifier, identifier);
-            }
-        }*/
-
         for (String dataset : datasets) {
-            writeBsubReducedDataScript("/gpfs/home/sjk17evu/Univariate_arff/" + dataset);
+            for (int classifier = 0; classifier < 25; classifier++) {
+                writeBsubTimingScript(5, dataset, classifier, identifier);
+            }
         }
+
+//        for (String dataset : datasets) {
+//            writeBsubReducedDataScript("/gpfs/home/sjk17evu/Univariate_arff/" + dataset);
+//        }
 
         writeBashScript();
 
@@ -54,7 +54,7 @@ public class ScriptBuilder {
         FileWriter fw = new FileWriter("scripts/" + dataset + "_" + classifier + ".bsub");
         fw.append("#!/bin/csh\n");
         fw.append("#BSUB -q long-eth\n");
-        fw.append("#BSUB -J " + dataset + "_" + classifier + "[1-" + (numResamples) + "]\n");
+        fw.append("#BSUB -J " + dataset + "_" + classifier + "[1-" + (numResamples+1) + "]\n");
         fw.append("#BSUB -oo output/output_%I.txt\n");
         fw.append("#BSUB -eo error/error_%I.txt\n");
         fw.append("#BSUB -R \"rusage[mem=6000]\"\n");

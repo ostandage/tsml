@@ -108,7 +108,7 @@ public class TimingExperiment {
     public ResultWrapper runExperiment(int resample) throws Exception {
         
         if (resample > 0) {
-            shuffleData((test.numInstances() + train.numInstances()) * 5, resample);
+            shuffleData((test.numInstances() + train.numInstances()) * 10, resample);
         }
 
         double startTrain = System.nanoTime();

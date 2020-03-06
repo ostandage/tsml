@@ -15,14 +15,18 @@ public class DataReader {
     public static void main(String args[]) throws Exception {
 
         DataReader d = new DataReader();
-        d.loadSingleFold("results/20200116", NewRunner.DatasetType.TEST, 0);
-        d.writeFoldCSV(Stat.ACCURACY, "results", 0);
-        d.writeFoldCSV(Stat.AVG_CLASSIFY_TIME, "results", 0);
-        d.writeFoldCSV(Stat.TOTAL_CLASSIFY_TIME, "results", 0);
-        d.writeFoldCSV(Stat.TRAIN_TIME, "results", 0);
+//        d.loadSingleFold("results/resamples", NewRunner.DatasetType.TEST, 0);
+//        d.writeFoldCSV(Stat.ACCURACY, "results/resamples", 0);
+//        d.writeFoldCSV(Stat.AVG_CLASSIFY_TIME, "results/resamples", 0);
+//        d.writeFoldCSV(Stat.TOTAL_CLASSIFY_TIME, "results/resamples", 0);
+//        d.writeFoldCSV(Stat.TRAIN_TIME, "results/resamples", 0);
 
-        d.loadMultiFolds("results/20200116", NewRunner.DatasetType.TEST, 2);
-        d.writeFoldsAverageCSV(Stat.ACCURACY, "results", 2);
+        d.loadMultiFolds("results/resamples", NewRunner.DatasetType.TEST, 5);
+        d.writeFoldsAverageCSV(Stat.ACCURACY, "results/resamples", 5);
+        d.writeFoldsAverageCSV(Stat.AVG_CLASSIFY_TIME, "results/resamples", 5);
+        d.writeFoldsAverageCSV(Stat.TOTAL_CLASSIFY_TIME, "results/resamples", 5);
+        d.writeFoldsAverageCSV(Stat.TRAIN_TIME, "results/resamples", 5);
+
         System.out.println("Done");
 
     }
@@ -160,7 +164,7 @@ public class DataReader {
         }
     }
 
-    public void writeFoldsAverageCSV(Stat stat, String outputPath, int numFolds) {
+    public void writeFoldsAverageCSV(Stat stat, String outputPath, int numFolds) throws Exception {
         ArrayList<DataPoint> points = new ArrayList<>();
 
         for (int df = 0; df < dataFiles.size(); df++) {
@@ -201,17 +205,17 @@ public class DataReader {
 
                 matrix.append(dataset);
 
-                SortedSet<DataFile> res = new TreeSet<>();
-                for (DataFile d : this.dataFiles) {
-//                    if ((d.fold == foldNo) && (d.dataset.compareTo(dataset) == 0)) {
-//                        res.add(d);
-//                    }
+                SortedSet<DataPoint> res = new TreeSet<>();
+                for (DataPoint d : points) {
+                    if (d.dataset.compareTo(dataset) == 0) {
+                        res.add(d);
+                    }
                 }
 
 
                 int count = 0;
                 Object[] classif = classifiers.toArray();
-                for (DataFile d : res) {
+                for (DataPoint d : res) {
                     Double value = -1.0;
 
                     while (d.classifier.compareTo((String) classif[count]) != 0) {
@@ -221,16 +225,16 @@ public class DataReader {
                     if (d.classifier.compareTo((String) classif[count]) == 0) {
                         switch (stat) {
                             case ACCURACY:
-                                value = d.accuracy;
+                                value = d.averageAccuracy();
                                 break;
                             case AVG_CLASSIFY_TIME:
-                                value = d.avgClassifyTime;
+                                value = d.averageAvgClassifyTime();
                                 break;
                             case TOTAL_CLASSIFY_TIME:
-                                value = d.totalClassifyTime;
+                                value = d.averageTotalClassifyTime();
                                 break;
                             case TRAIN_TIME:
-                                value = d.trainTime;
+                                value = d.averageTrainTime();
                                 break;
                         }
                         count++;
@@ -340,10 +344,10 @@ public class DataReader {
 
         @Override
         public int compareTo(Object o) {
-            if (classifier.compareTo(((DataFile) o).classifier) == 0) {
-                return dataset.compareTo(((DataFile) o).dataset);
+            if (classifier.compareTo(((DataPoint) o).classifier) == 0) {
+                return dataset.compareTo(((DataPoint) o).dataset);
             }
-            return classifier.compareTo(((DataFile) o).classifier);
+            return classifier.compareTo(((DataPoint) o).classifier);
         }
     }
 }

@@ -22,6 +22,7 @@ import timeseriesweka.classifiers.shapelet_based.ShapeletTransformClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.lazy.IBk;
+import weka.classifiers.meta.RotationForest;
 import weka.core.Instances;
 
 import java.io.File;
@@ -38,6 +39,7 @@ public class NewRunner {
     private static String DataPath;
     private static String ResultsPath;
     private static int NumThreads = 1;
+    private static boolean CrossValidate = true;
 
     public static enum DatasetType {
         TRAIN,
@@ -54,9 +56,9 @@ public class NewRunner {
         
         //Debug
         if (args.length == 0) {
-            Identifier = "reducedData";
-            Resample = 0;
-            ClassifierIndex = 4;
+            Identifier = "resamples";
+            Resample = 4;
+            ClassifierIndex = 0;
             DataPath = "data/Univariate_arff/ChlorineConcentration";
             ResultsPath = "results";
             NumThreads = 4;
@@ -174,9 +176,11 @@ public class NewRunner {
 
     public static Classifier[] createClassifierArray() {
         Classifier[] classifiers = new Classifier[NumClassifiers];
+
         classifiers[0] = new IBk();
         classifiers[1] = new NaiveBayes();
         classifiers[2] = new DTW1NN();
+
         classifiers[3] = new FastDTW();
 
         FastDTW_1NN dtw_1NN = new FastDTW_1NN();
@@ -204,7 +208,7 @@ public class NewRunner {
         classifiers[21] = new FastShapelets();
         classifiers[22] = new TSBF();
         classifiers[23] = new LPS();
-        classifiers[24] = new FlatCote();
+        classifiers[24] = new RotationForest();
 
         //Replace this with a list of strings, and then use setclassifier method to get the classifier,
         //within the timing experiment class. ClassifierLists.
