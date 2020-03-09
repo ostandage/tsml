@@ -44,6 +44,9 @@ public class QuickRunner {
     //DistalPhalanxTW                   0.589   0.626
     //Earthquakes                       0.719   0.726
     //FordA                             0.554   0.576
+    //FordB                             0.619   0.622
+
+    //Tested alphabetically up to and including Ham.
 
 
     private static void postProcessHiveCote() {
