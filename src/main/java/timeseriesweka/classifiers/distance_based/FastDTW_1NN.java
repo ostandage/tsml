@@ -74,6 +74,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     private int bestWarp;
     private int maxWindowSize;
     private int maxNoThreads = 1;
+    private int k = 1;
     DTW_DistanceBasic dtw;
     HashMap<Integer,Double> distances;
     double maxR=1;
@@ -120,7 +121,9 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     @Override
     public double getAcc() {
         return res.getAcc();
-    }  
+    }
+
+    public void setK(int k) {this.k = k;}
 
     public FastDTW_1NN(){
         dtw=new DTW();
@@ -263,6 +266,10 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
             int intervalSize = train.numInstances() / maxNoThreads;
 
+
+            //for KNN:
+            //have an array of InstanceDistance, and have a store of the max val. If the next node is less than max,
+            //remove the max and replace with if the array is full, else just add it. 
             InstanceDistance closestInstance = new InstanceDistance(Double.MAX_VALUE, -1);
 
             for (int t = 0; t < maxNoThreads; t++) {
