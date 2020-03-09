@@ -16,6 +16,8 @@ package timeseriesweka.classifiers.distance_based;
 import fileIO.OutFile;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import timeseriesweka.elastic_distance_measures.DTW;
 import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;
@@ -245,40 +247,69 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     }
     @Override
     public double classifyInstance(Instance d){
-        /*Basic distance, with early abandon. This is only for 1-nearest neighbour*/
         int index = 0;
 
-        //if default params, run original method.
-        if (maxNoThreads == 1) {
-            double minSoFar = Double.MAX_VALUE;
-            double dist;
-            for (int i = 0; i < train.numInstances(); i++) {
-                dist = dtw.distance(train.instance(i), d, minSoFar);
-                if (dist < minSoFar) {
-                    minSoFar = dist;
-                    index = i;
+        if (k == 1) {
+            //if default params, run original method.
+            if (maxNoThreads == 1) {
+                double minSoFar = Double.MAX_VALUE;
+                double dist;
+                for (int i = 0; i < train.numInstances(); i++) {
+                    dist = dtw.distance(train.instance(i), d, minSoFar);
+                    if (dist < minSoFar) {
+                        minSoFar = dist;
+                        index = i;
+                    }
                 }
+            } else {
+//          split up the instances into x number of batches and then process each batch on a core.
+
+                ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
+                int intervalSize = train.numInstances() / maxNoThreads;
+
+                InstanceDistance closestInstance = new InstanceDistance(Double.MAX_VALUE, -1);
+
+                for (int t = 0; t < maxNoThreads; t++) {
+                    if (t == maxNoThreads - 1) {
+                        //Overspill at end due to integer division.
+                        classifyThreads[t] = new ClassifyThread(d, t * intervalSize, train.numInstances(), closestInstance);
+                    } else {
+                        classifyThreads[t] = new ClassifyThread(d, t * intervalSize, (t + 1) * intervalSize, closestInstance);
+                    }
+                    classifyThreads[t].start();
+                }
+
+                for (int t = 0; t < maxNoThreads; t++) {
+                    try {
+                        classifyThreads[t].join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                index = closestInstance.index;
             }
         }
         else {
-//          split up the instances into x number of batches and then process each batch on a core.
+            //for KNN:
+            //have an array of InstanceDistance, and have a store of the max val. If the next node is less than max,
+            //remove the max and replace with if the array is full, else just add it.
+
+            if (k < train.numInstances()) {
+                k = train.numInstances();
+            }
+
+            SortedMap<Double, Integer> predictions = Collections.synchronizedSortedMap(new TreeMap<Double, Integer>());
+            predictions.put(Double.MAX_VALUE, -1);
 
             ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
             int intervalSize = train.numInstances() / maxNoThreads;
 
-
-            //for KNN:
-            //have an array of InstanceDistance, and have a store of the max val. If the next node is less than max,
-            //remove the max and replace with if the array is full, else just add it. 
-            InstanceDistance closestInstance = new InstanceDistance(Double.MAX_VALUE, -1);
-
             for (int t = 0; t < maxNoThreads; t++) {
-                if (t == maxNoThreads-1) {
+                if (t == maxNoThreads - 1) {
                     //Overspill at end due to integer division.
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, train.numInstances(), closestInstance);
-                }
-                else {
-                    classifyThreads[t] = new ClassifyThread(d, t*intervalSize, (t+1)*intervalSize, closestInstance);
+                    classifyThreads[t] = new ClassifyThread(d, t * intervalSize, train.numInstances(), predictions);
+                } else {
+                    classifyThreads[t] = new ClassifyThread(d, t * intervalSize, (t + 1) * intervalSize, predictions);
                 }
                 classifyThreads[t].start();
             }
@@ -290,8 +321,35 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                     e.printStackTrace();
                 }
             }
-            index = closestInstance.index;
 
+            //<CV,count>
+            HashMap<Double, Integer> counts = new HashMap<>();
+            Collection<Integer> closestIndexes = predictions.values();
+            Integer[] closestIndexesArr = new Integer[closestIndexes.size()];
+            closestIndexesArr = closestIndexes.toArray(closestIndexesArr);
+            for (int nk = 0; nk < k; nk++) {
+                if (nk == closestIndexesArr.length-1) {
+                    break;
+                }
+                double cv = train.instance(closestIndexesArr[nk]).classValue();
+                if (counts.containsKey(cv)) {
+                    int count = counts.get(cv) + 1;
+                    counts.replace(cv, count);
+                }
+                else {
+                    counts.put(cv, 1);
+                }
+            }
+            AtomicInteger maxCount = new AtomicInteger();
+            AtomicReference<Double> maxCountCV = new AtomicReference<>();
+            counts.forEach((k,v) -> {
+                if (v > maxCount.get()) {
+                    maxCount.set(v);
+                    maxCountCV.set(k);
+                }
+            });
+
+            return maxCountCV.get();
         }
 
         return train.instance(index).classValue();
@@ -311,6 +369,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         private Instance d;
         private int start;
         private int end;
+        private SortedMap<Double, Integer> predictions;
         private InstanceDistance closestInstance;
 
         public ClassifyThread(Instance d, int start, int end, InstanceDistance closestInstance) {
@@ -320,17 +379,44 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             this.closestInstance = closestInstance;
         }
 
+        public ClassifyThread(Instance d, int start, int end, SortedMap<Double, Integer> predictions) {
+            this.d = d;
+            this.start = start;
+            this.end = end;
+            this.predictions = predictions;
+        }
+
         public void run() {
             DTW_DistanceBasic temp = new DTW();
-            double dist = 0.0;
             for (int i = start; i < end; i++) {
-                dist = temp.distance(train.instance(i), d, closestInstance.distance);
 
-                if (dist <= closestInstance.distance) {
-                    synchronized (closestInstance) {
-                        closestInstance.distance = dist;
-                        closestInstance.index = i;
+                if (k == 1) {
+                    double dist = temp.distance(train.instance(i), d, closestInstance.distance);
+
+//                    if (dist == 0.0) {
+//                        System.out.println("Dist is 0.0");
+//                    }
+
+                    if (dist <= closestInstance.distance) {
+                        synchronized (closestInstance) {
+                            closestInstance.distance = dist;
+                            closestInstance.index = i;
+                        }
                     }
+                }
+                else {
+                    double dist = temp.distance(train.instance(i), d, predictions.firstKey());
+
+//                    if (dist == 0.0) {
+//                        System.out.println("Dist is 0.0");
+//                    }
+
+                    if (dist <= predictions.firstKey()) {
+                        synchronized (predictions) {
+                            predictions.put(dist, i);
+                        }
+                    }
+
                 }
             }
         }

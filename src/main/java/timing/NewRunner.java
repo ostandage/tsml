@@ -58,12 +58,12 @@ public class NewRunner {
 
         //Debug
         if (args.length == 0) {
-            Identifier = "20200116";
+            Identifier = "dtwKNN";
             Resample = 0;
-            ClassifierIndex = 25;
-            DataPath = "data/Univariate_arff/ChlorineConcentration";
+            ClassifierIndex = 4;
+            DataPath = "data/Univariate_arff/InsectWingbeatSound";
             ResultsPath = "results";
-            NumThreads = 4;
+            NumThreads = 2;
         }
 
         else {
@@ -223,6 +223,7 @@ public class NewRunner {
 
         FastDTW_1NN dtw_1NN = new FastDTW_1NN();
         dtw_1NN.setMaxNoThreads(NumThreads);
+        //dtw_1NN.setK(23);
         classifiers[4] = dtw_1NN;
 
         classifiers[5] = new ProximityForestWrapper();

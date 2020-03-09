@@ -15,22 +15,21 @@ public class ScriptBuilder {
         SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
         String identifier = df.format(d);
 
-        //Full Univariate.
         File dataDir = new File("data/Univariate_arff");
-//        String[] datasets = dataDir.list();
         String[] datasets = DatasetLists.tscProblems85;
 
-        for (String dataset : datasets) {
-            for (int classifier = 0; classifier < 25; classifier++) {
-                writeBsubTimingScript(5, dataset, classifier, identifier);
-            }
-        }
+//        for (String dataset : datasets) {
+//            for (int classifier = 0; classifier < 25; classifier++) {
+//                writeBsubTimingScript(5, dataset, classifier, identifier);
+//            }
+//        }
 
 //        for (String dataset : datasets) {
 //            writeBsubReducedDataScript("/gpfs/home/sjk17evu/Univariate_arff/" + dataset);
 //        }
 
-        writeBashScript();
+        writePiReducedDataScript(identifier);
+//        writeBashScript();
 
     }
 
@@ -76,6 +75,20 @@ public class ScriptBuilder {
             fw.append("bsub < scripts/" + sub + "\n");
         }
 
+        fw.flush();
+    }
+
+    public static void writePiReducedDataScript(String id) throws Exception {
+        FileWriter fw = new FileWriter("bash/piReduced.sh");
+        fw.append("#!/bin/csh\n");
+
+        String[] datasets = DatasetLists.tscProblems85;
+
+        for (String dataset : datasets) {
+            for (int cores = 1; cores <= 4; cores++) {
+                fw.append("java -jar -Xmx1500m TimingExperiment.jar redData" + id + " 1 4 " + " data/Univariate_arff/" + dataset + " results/" + cores +"/ " + cores +"\n");
+            }
+        }
         fw.flush();
     }
 }
