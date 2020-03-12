@@ -5,10 +5,24 @@ import experiments.data.DatasetLists;
 public class QuickRunner {
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         //postProcessHiveCote();
-        dtwKnnTesting();
+        //dtwKnnTesting();
+        DTWTrainingTesting();
+
+    }
+
+    private static void DTWTrainingTesting() throws Exception {
+        String[] datasets = DatasetLists.tscProblems85;
+        for (String dataset : datasets) {
+            String datapath = "data/Univariate_arff/" + dataset + "/"+ dataset;
+            String resultsPath = "results/DTWTraining/" + dataset + ".csv";
+
+            String[] args = {dataset, datapath, resultsPath};
+            DTWTrainingExperiments.main(args);
+        }
+
 
     }
 

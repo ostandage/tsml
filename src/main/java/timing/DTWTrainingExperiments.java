@@ -22,42 +22,61 @@ public class DTWTrainingExperiments {
 
     public static void main(String[] args) throws Exception {
 
-        String dataset = "DistalPhalanxTW";
+        String dataset = "ArrowHead";
+        String datapath = "data/Univariate_arff/" + dataset + "/"+ dataset;
         String resultsPath = "results/DTWTraining/" + dataset + ".csv";
 
-        Instances train = WekaTools.loadClassificationData("data/Univariate_arff/" + dataset + "/"+ dataset +"_TRAIN.arff");
-        Instances test =  WekaTools.loadClassificationData("data/Univariate_arff/" + dataset + "/"+ dataset +"_TEST.arff");
+        if (args.length > 0) {
+            dataset = args[0];
+            datapath = args[1];
+            resultsPath = args[2];
+        }
+
+        Instances train = WekaTools.loadClassificationData(datapath + "_TRAIN.arff");
+        Instances test =  WekaTools.loadClassificationData(datapath +"_TEST.arff");
 
         numFolds = 10;
         threads = 4;
         setupTrainData(train);
 
         FileWriter csv = new FileWriter(resultsPath);
-        csv.append("Dataset,Description,R,K,Time,TrainAccuracy\n");
+        csv.append("Dataset,Description,R,K,Time,Accuracy\n");
         csv.flush();
 
         //For the findOptimal methods, time and accuracy are the train time and train accuracy.
-        //Final line is the test classify time and test accuracy.
-        System.out.println("Dataset,Description,R,K,Time,Accuracy");
+        //-TEST accuracy is for the test data.
+        System.out.println("Dataset,Description,R,K,BuildTime,Accuracy");
 
+        long start = System.nanoTime();
         FastDTW_1NN settingR = findOptimalR(100, 1, "settingR", dataset, csv);
+        long settingRTime = System.nanoTime() - start;
+
+        start = System.nanoTime();
         FastDTW_1NN settingK = findOptimalK(1.0, 2, 100, "settingK", dataset, csv);
+        long settingKTime = System.nanoTime() - start;
 
         //Setting K given optimal R already found.
+        start = System.nanoTime();
         FastDTW_1NN settingRK = findOptimalK(settingR.getR(), 2, 100, "settingRK", dataset, csv);
+        long settingRKTime = (System.nanoTime() - start) + settingRTime;
 
-        System.out.println("Optimal Configuration ->     R: " + settingRK.getR() + "     K: " + settingRK.getK());
+        settingR.buildClassifier(train);
+        double acc = WekaTools.accuracy(settingR, test);
+        System.out.print(dataset + ",settingR-TEST," + settingR.getR() +","+ settingR.getK() +","+ settingRTime +","+ acc + "\n");
+        csv.append(dataset + ",settingR-TEST," + settingR.getR() +","+ settingR.getK() +","+ settingRTime +","+ acc + "\n");
+
+        settingK.buildClassifier(train);
+        acc = WekaTools.accuracy(settingK, test);
+
+        System.out.print(dataset + ",settingK-TEST," + settingK.getR() +","+ settingK.getK() +","+ settingKTime +","+ acc + "\n");
+        csv.append(dataset + ",settingK-TEST," + settingK.getR() +","+ settingK.getK() +","+ settingKTime +","+ acc + "\n");
 
         settingRK.buildClassifier(train);
-        long startTest = System.nanoTime();
-        double acc = WekaTools.accuracy(settingRK, test);
-        long testTime = System.nanoTime() - startTest;
+        acc = WekaTools.accuracy(settingRK, test);
+        System.out.print(dataset + ",settingRK-TEST," + settingRK.getR() +","+ settingRK.getK() +","+ settingRKTime +","+ acc + "\n");
+        csv.append(dataset + ",settingRK-TEST," + settingRK.getR() +","+ settingRK.getK() +","+ settingRKTime +","+ acc + "\n");
 
-        System.out.print(dataset + ",OptimalConfig-TEST," + settingRK.getR() +","+ settingRK.getK() +","+ testTime +","+ acc + "\n");
-        csv.append(dataset + ",OptimalConfig-TEST," + settingRK.getR() +","+ settingRK.getK() +","+ testTime +","+ acc + "\n");
         csv.close();
-
-
     }
 
     public static FastDTW_1NN findOptimalK(double r, int increment, int maxK, String desc, String dataset, FileWriter csv) throws Exception {
@@ -135,6 +154,7 @@ public class DTWTrainingExperiments {
             csv.append(dataset + "," + desc + "," + classifiers[i].getR() + "," + k + "," + trainTime + "," + accuracies[i] + "\n");
         }
 
+        //Try changing here.
         int highestAccuracyIndex = 0;
         for (int i = 0; i < accuracies.length; i++) {
             if (accuracies[i] > accuracies[highestAccuracyIndex]) {
