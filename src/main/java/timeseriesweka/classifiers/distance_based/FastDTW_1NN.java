@@ -104,6 +104,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             throw new UnsupportedOperationException("Doing a top leve CV is not yet possible for FastDTW_1NN. It cross validates to optimize, so could store those, but will be biased"); //To change body of generated methods, choose Tools | Templates.
 //This method doe
     }
+    public int getK() {return k;}
      
     
 //Think this always does para search?
