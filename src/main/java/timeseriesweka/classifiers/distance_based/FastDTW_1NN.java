@@ -389,6 +389,13 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
 
         public void run() {
             DTW_DistanceBasic temp = new DTW();
+            try {
+                temp.setOptions(dtw.getOptions());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            temp.setR(dtw.getR());
+
             for (int i = start; i < end; i++) {
 
                 if (k == 1) {
