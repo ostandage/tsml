@@ -15,19 +15,19 @@ public class QuickRunner {
 
     private static void DTWTrainingTesting() throws Exception {
         String[] datasets = DatasetLists.tscProblems85;
-        boolean skip = true;
-        for (String dataset : datasets) {
+        boolean skip = false;
+        for (int i = 0; i < datasets.length; i++) {
             //Allows us to resume at a given dataset.
-            if (dataset == "ElectricDevices") {
+            if (datasets[i] == "ElectricDevices") {
                 skip = false;
             }
 
             if (!skip)
             {
-                String datapath = "data/Univariate_arff/" + dataset + "/"+ dataset;
-                String resultsPath = "results/DTWTraining/" + dataset + ".csv";
+                String datapath = "data/Univariate_arff/" + datasets[i] + "/"+ datasets[i];
+                String resultsPath = "results/DTWTraining/" + datasets[i] + ".csv";
 
-                String[] args = {dataset, datapath, resultsPath};
+                String[] args = {datasets[i], datapath, resultsPath};
                 DTWTrainingExperiments.main(args);
             }
         }
