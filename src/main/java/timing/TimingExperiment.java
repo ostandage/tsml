@@ -73,7 +73,6 @@ public class TimingExperiment {
             trainFoldData.delete(i);
         }
 
-        classifier =  classifier.getClass().newInstance();
         classifier.buildClassifier(trainFoldData);
 
         for (int i = 0; i < testFoldData.numInstances(); i++) {
@@ -109,14 +108,15 @@ public class TimingExperiment {
     public ResultWrapper runExperiment(int resample) throws Exception {
         
         if (resample > 0) {
-            shuffleData((test.numInstances() + train.numInstances()) * 5, resample);
+            shuffleData((test.numInstances() + train.numInstances()) * 10, resample);
         }
 
         double startTrain = System.nanoTime();
-        ClassifierResults trainResults = runOptimalTraining(10);
+        classifier.buildClassifier(train);
         double trainTime = System.nanoTime() - startTrain;
         timeForTrain = trainTime;
 
+        ClassifierResults trainResults = runOptimalTraining(10);
         double[] times = new double[test.numInstances()];
 
         ClassifierResults cresults = new ClassifierResults();

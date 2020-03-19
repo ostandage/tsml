@@ -14,18 +14,19 @@
  */
 package timeseriesweka.classifiers.distance_based;
 import fileIO.OutFile;
-import java.util.ArrayList;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import timeseriesweka.elastic_distance_measures.DTW;
 import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;
-import java.util.HashMap;
+
 import evaluation.storage.ClassifierResults;
 import experiments.data.DatasetLoading;
-import utilities.ClassifierTools;
 import weka_extras.classifiers.SaveEachParameter;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.Classifier;
 import weka.core.*;
-import java.lang.instrument.*;
 import timeseriesweka.classifiers.ParameterSplittable;
 import timeseriesweka.classifiers.SaveParameterInfo;
 import timeseriesweka.classifiers.TrainAccuracyEstimator;
@@ -74,6 +75,8 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     private int trainSize;
     private int bestWarp;
     private int maxWindowSize;
+    private int maxNoThreads = 1;
+    private int k = 1;
     DTW_DistanceBasic dtw;
     HashMap<Integer,Double> distances;
     double maxR=1;
@@ -101,6 +104,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             throw new UnsupportedOperationException("Doing a top leve CV is not yet possible for FastDTW_1NN. It cross validates to optimize, so could store those, but will be biased"); //To change body of generated methods, choose Tools | Templates.
 //This method doe
     }
+    public int getK() {return k;}
      
     
 //Think this always does para search?
@@ -120,7 +124,9 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     @Override
     public double getAcc() {
         return res.getAcc();
-    }  
+    }
+
+    public void setK(int k) {this.k = k;}
 
     public FastDTW_1NN(){
         dtw=new DTW();
@@ -149,6 +155,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     public double getR(){ return dtw.getR();}
     public int getBestWarp(){ return bestWarp;}
     public int getWindowSize(){ return dtw.getWindowSize(train.numAttributes()-1);}
+    public void setMaxNoThreads(int maxNoThreads){this.maxNoThreads = maxNoThreads;}
 
     @Override
     public void buildClassifier(Instances d){
@@ -241,18 +248,188 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     }
     @Override
     public double classifyInstance(Instance d){
-/*Basic distance, with early abandon. This is only for 1-nearest neighbour*/
-            double minSoFar=Double.MAX_VALUE;
-            double dist; int index=0;
-            for(int i=0;i<train.numInstances();i++){
-                    dist=dtw.distance(train.instance(i),d,minSoFar);
-                    if(dist<minSoFar){
-                            minSoFar=dist;
-                            index=i;
+        int index = 0;
+
+        if (k == 1) {
+            //if default params, run original method.
+            if (maxNoThreads == 1) {
+                double minSoFar = Double.MAX_VALUE;
+                double dist;
+                for (int i = 0; i < train.numInstances(); i++) {
+                    dist = dtw.distance(train.instance(i), d, minSoFar);
+                    if (dist < minSoFar) {
+                        minSoFar = dist;
+                        index = i;
                     }
+                }
+            } else {
+//          split up the instances into x number of batches and then process each batch on a core.
+
+                ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
+                int intervalSize = train.numInstances() / maxNoThreads;
+
+                InstanceDistance closestInstance = new InstanceDistance(Double.MAX_VALUE, -1);
+
+                for (int t = 0; t < maxNoThreads; t++) {
+                    if (t == maxNoThreads - 1) {
+                        //Overspill at end due to integer division.
+                        classifyThreads[t] = new ClassifyThread(d, t * intervalSize, train.numInstances(), closestInstance);
+                    } else {
+                        classifyThreads[t] = new ClassifyThread(d, t * intervalSize, (t + 1) * intervalSize, closestInstance);
+                    }
+                    classifyThreads[t].start();
+                }
+
+                for (int t = 0; t < maxNoThreads; t++) {
+                    try {
+                        classifyThreads[t].join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                index = closestInstance.index;
             }
-            return train.instance(index).classValue();
+        }
+        else {
+            //for KNN:
+            //have an array of InstanceDistance, and have a store of the max val. If the next node is less than max,
+            //remove the max and replace with if the array is full, else just add it.
+
+            if (k < train.numInstances()) {
+                k = train.numInstances();
+            }
+
+            SortedMap<Double, Integer> predictions = Collections.synchronizedSortedMap(new TreeMap<Double, Integer>());
+            predictions.put(Double.MAX_VALUE, -1);
+
+            ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
+            int intervalSize = train.numInstances() / maxNoThreads;
+
+            for (int t = 0; t < maxNoThreads; t++) {
+                if (t == maxNoThreads - 1) {
+                    //Overspill at end due to integer division.
+                    classifyThreads[t] = new ClassifyThread(d, t * intervalSize, train.numInstances(), predictions);
+                } else {
+                    classifyThreads[t] = new ClassifyThread(d, t * intervalSize, (t + 1) * intervalSize, predictions);
+                }
+                classifyThreads[t].start();
+            }
+
+            for (int t = 0; t < maxNoThreads; t++) {
+                try {
+                    classifyThreads[t].join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            //<CV,count>
+            HashMap<Double, Integer> counts = new HashMap<>();
+            Collection<Integer> closestIndexes = predictions.values();
+            Integer[] closestIndexesArr = new Integer[closestIndexes.size()];
+            closestIndexesArr = closestIndexes.toArray(closestIndexesArr);
+            for (int nk = 0; nk < k; nk++) {
+                if (nk == closestIndexesArr.length-1) {
+                    break;
+                }
+                double cv = train.instance(closestIndexesArr[nk]).classValue();
+                if (counts.containsKey(cv)) {
+                    int count = counts.get(cv) + 1;
+                    counts.replace(cv, count);
+                }
+                else {
+                    counts.put(cv, 1);
+                }
+            }
+            AtomicInteger maxCount = new AtomicInteger();
+            AtomicReference<Double> maxCountCV = new AtomicReference<>();
+            counts.forEach((k,v) -> {
+                if (v > maxCount.get()) {
+                    maxCount.set(v);
+                    maxCountCV.set(k);
+                }
+            });
+
+            return maxCountCV.get();
+        }
+
+        return train.instance(index).classValue();
     }
+
+    private class InstanceDistance {
+        private double distance;
+        private int index;
+
+        public InstanceDistance(double distance, int index) {
+            this.distance = distance;
+            this.index = index;
+        }
+    }
+
+    private class ClassifyThread extends Thread {
+        private Instance d;
+        private int start;
+        private int end;
+        private SortedMap<Double, Integer> predictions;
+        private InstanceDistance closestInstance;
+
+        public ClassifyThread(Instance d, int start, int end, InstanceDistance closestInstance) {
+            this.d = d;
+            this.start = start;
+            this.end = end;
+            this.closestInstance = closestInstance;
+        }
+
+        public ClassifyThread(Instance d, int start, int end, SortedMap<Double, Integer> predictions) {
+            this.d = d;
+            this.start = start;
+            this.end = end;
+            this.predictions = predictions;
+        }
+
+        public void run() {
+            DTW_DistanceBasic temp = new DTW();
+            try {
+                temp.setOptions(dtw.getOptions());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            temp.setR(dtw.getR());
+
+            for (int i = start; i < end; i++) {
+
+                if (k == 1) {
+                    double dist = temp.distance(train.instance(i), d, closestInstance.distance);
+
+//                    if (dist == 0.0) {
+//                        System.out.println("Dist is 0.0");
+//                    }
+
+                    if (dist <= closestInstance.distance) {
+                        synchronized (closestInstance) {
+                            closestInstance.distance = dist;
+                            closestInstance.index = i;
+                        }
+                    }
+                }
+                else {
+                    double dist = temp.distance(train.instance(i), d, predictions.firstKey());
+
+//                    if (dist == 0.0) {
+//                        System.out.println("Dist is 0.0");
+//                    }
+
+                    if (dist <= predictions.firstKey()) {
+                        synchronized (predictions) {
+                            predictions.put(dist, i);
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
     @Override
     public double[] distributionForInstance(Instance instance){
         double[] dist=new double[instance.numClasses()];
@@ -260,7 +437,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         return dist;
     }
 
-    
+
     /**Could do this by calculating the distance matrix, but then 	
  * you cannot use the early abandon. Early abandon about doubles the speed,
  * as will storing the distances. Given the extra n^2 memory, probably better
@@ -279,7 +456,7 @@ answer is to store those without the abandon in a hash table indexed by i and j,
         int w;
         distances=new HashMap<>(trainSize);
         
-        
+        //Similar idea to above here.
         for(int i=0;i<trainSize;i++){
 //Find nearest to element i
             nearest=0;
