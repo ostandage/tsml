@@ -1389,12 +1389,11 @@ tiianic
         "breast-tissue","cardiotocography-10clases",
         "conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding",
         "ecoli","glass","hill-valley",
-        "image-segmentation","ionosphere","iris","libras","magic",
-        "miniboone",
+        "image-segmentation","ionosphere","iris","libras",
         "oocytes_merluccius_nucleus_4d","oocytes_trisopterus_states_5b",
-        "optical","ozone","page-blocks","parkinsons","pendigits",
+        "optical","ozone","page-blocks","parkinsons",
         "planning","post-operative","ringnorm","seeds","spambase",
-            "statlog-landsat","statlog-shuttle","statlog-vehicle","steel-plates",
+            "statlog-landsat","statlog-vehicle","steel-plates",
             "synthetic-control","twonorm","vertebral-column-3clases",
             "wall-following","waveform-noise","wine-quality-white","yeast"};
  
