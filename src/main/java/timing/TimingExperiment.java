@@ -116,7 +116,7 @@ public class TimingExperiment {
         double trainTime = System.nanoTime() - startTrain;
         timeForTrain = trainTime;
 
-        ClassifierResults trainResults = runOptimalTraining(10);
+        ClassifierResults trainResults = null;
         double[] times = new double[test.numInstances()];
 
         ClassifierResults cresults = new ClassifierResults();
