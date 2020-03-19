@@ -16,7 +16,8 @@ public class QuickRunner {
     private static void DTWTrainingTesting() throws Exception {
         String[] datasets = DatasetLists.tscProblems85;
         boolean skip = false;
-        for (int i = 0; i < datasets.length; i++) {
+        //for (int i = 0; i < datasets.length; i++) {
+        for (int i = datasets.length-1; i > 0; i--) {
             //Allows us to resume at a given dataset.
             if (datasets[i] == "ElectricDevices") {
                 skip = false;

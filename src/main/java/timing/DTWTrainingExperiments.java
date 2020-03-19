@@ -152,6 +152,7 @@ public class DTWTrainingExperiments {
 
             System.out.print(dataset + "," + desc + "," + classifiers[i].getR() + "," + k + "," + trainTime + "," + accuracies[i] + "\n");
             csv.append(dataset + "," + desc + "," + classifiers[i].getR() + "," + k + "," + trainTime + "," + accuracies[i] + "\n");
+            csv.flush();
         }
 
         //Try changing here.
