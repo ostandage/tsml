@@ -165,6 +165,10 @@ public class Attribute
   /** The attribute's values (if nominal or string). */
   private /*@ spec_public @*/ ArrayList<Object> m_Values;
 
+  public void forceUpdateValues(ArrayList<Object> m_Values) {
+    this.m_Values = m_Values;
+  }
+
   /** Mapping of values to indices (if nominal or string). */
   private Hashtable<Object,Integer> m_Hashtable;
 

@@ -20,12 +20,16 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.trees.RandomForest;
+import weka.core.Attribute;
 import weka.core.EuclideanDistance;
+import weka.core.Instance;
 import weka.core.Instances;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.util.ArrayList;
 
 public class ExperimentRunner {
 
@@ -77,13 +81,18 @@ public class ExperimentRunner {
         Instances[] tests = new Instances[Datasets.length];
 
         for (int d = 0; d < Datasets.length; d++) {
+
+            if (Datasets[d].numClasses() > 2) {
+                Datasets[d] = convertToBinaryClassProblem(Datasets[d]);
+            }
+
             Instances[] split = WekaTools.splitData(Datasets[d], 0.6);
             trains[d] = split[0];
             tests[d] = split[1];
         }
 
 
-        for (int d = 0; d < Datasets.length; d++) {
+        for (int d = 4; d < Datasets.length; d++) {
             //for (int c = 0; c < Classifiers.length; c++) {
             for (int c = 0; c < 3; c++) {
                 for (int r = 0; r < 1; r++) {
@@ -138,6 +147,41 @@ public class ExperimentRunner {
         for (int d = 0; d < datasets.length; d++) {
             Datasets[d] = WekaTools.loadClassificationData(dataDir + "/" + datasets[d] + "/" + datasets[d] + ".arff");
         }
+    }
+
+    //Only for numeric problems.
+    public static Instances convertToBinaryClassProblem(Instances problem) {
+        //Find majority class
+        int[] classDistribution = new int[problem.numInstances()];
+        int majorityClass = 0;
+
+        for (Instance instance : problem) {
+            classDistribution[(int) instance.classValue()]++;
+        }
+
+        for (int c = 1; c < classDistribution.length; c++) {
+            if (classDistribution[c] > classDistribution[majorityClass]) {
+                majorityClass = c;
+            }
+        }
+
+        Instances binaryProblem = new Instances(problem);
+        for (int i = 0; i < binaryProblem.numInstances(); i++) {
+            if (binaryProblem.get(i).classValue() == majorityClass) {
+                binaryProblem.get(i).setValue(binaryProblem.classIndex(), 0);
+            }
+            else {
+                binaryProblem.get(i).setValue(binaryProblem.classIndex(), 1);
+            }
+        }
+
+        ArrayList<Object> val2 = new ArrayList<>();
+        val2.add("0");
+        val2.add("1");
+
+        binaryProblem.classAttribute().forceUpdateValues(val2);
+
+        return binaryProblem;
     }
 
 }
