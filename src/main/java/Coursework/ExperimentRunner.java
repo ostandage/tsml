@@ -9,6 +9,7 @@ import timeseriesweka.classifiers.dictionary_based.BOSS;
 import timeseriesweka.classifiers.distance_based.DD_DTW;
 import timeseriesweka.classifiers.distance_based.ElasticEnsemble;
 import timeseriesweka.classifiers.distance_based.FastDTW_1NN;
+import timeseriesweka.classifiers.distance_based.elastic_ensemble.DTW1NN;
 import timeseriesweka.classifiers.hybrids.HiveCote;
 import timeseriesweka.classifiers.interval_based.TSF;
 import timing.ResultWrapper;
@@ -92,10 +93,11 @@ public class ExperimentRunner {
         }
 
 
-        for (int d = 4; d < Datasets.length; d++) {
+        for (int d = 0; d < Datasets.length; d++) {
             //for (int c = 0; c < Classifiers.length; c++) {
-            for (int c = 0; c < 3; c++) {
-                for (int r = 0; r < 1; r++) {
+
+            for (int c = 6; c < 7; c++) {
+                for (int r = 0; r < 5; r++) {
                     try {
 //                    Classifiers[c].buildClassifier(trains[d]);
 //                    String info = DatasetLists.ReducedUCI[d] + " - " + ClassifierNames[c];

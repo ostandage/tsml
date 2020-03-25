@@ -21,11 +21,11 @@ public class DataReader {
 //        d.writeFoldCSV(Stat.TOTAL_CLASSIFY_TIME, "results/resamples", 0);
 //        d.writeFoldCSV(Stat.TRAIN_TIME, "results/resamples", 0);
 
-        d.loadMultiFolds("results/resamples", NewRunner.DatasetType.TEST, 5);
-        d.writeFoldsAverageCSV(Stat.ACCURACY, "results/resamples", 5);
-        d.writeFoldsAverageCSV(Stat.AVG_CLASSIFY_TIME, "results/resamples", 5);
-        d.writeFoldsAverageCSV(Stat.TOTAL_CLASSIFY_TIME, "results/resamples", 5);
-        d.writeFoldsAverageCSV(Stat.TRAIN_TIME, "results/resamples", 5);
+        d.loadMultiFolds("results/perceptrons", NewRunner.DatasetType.TEST, 5);
+        d.writeFoldsAverageCSV(Stat.ACCURACY, "results/perceptrons", 5);
+        d.writeFoldsAverageCSV(Stat.AVG_CLASSIFY_TIME, "results/perceptrons", 5);
+        d.writeFoldsAverageCSV(Stat.TOTAL_CLASSIFY_TIME, "results/perceptrons", 5);
+        d.writeFoldsAverageCSV(Stat.TRAIN_TIME, "results/perceptrons", 5);
 
         System.out.println("Done");
 
