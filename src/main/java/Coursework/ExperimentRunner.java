@@ -20,6 +20,7 @@ import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
+import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
 import weka.core.EuclideanDistance;
@@ -41,7 +42,7 @@ public class ExperimentRunner {
         loadDatasets();
 
 
-        Classifiers = new Classifier[13];
+        Classifiers = new Classifier[14];
         Classifiers[0] = new LinearPerceptron();
 
         EnhancedLinearPerceptron elp = new EnhancedLinearPerceptron();
@@ -64,6 +65,10 @@ public class ExperimentRunner {
         HiveCote hc = new HiveCote();
         ElasticEnsemble ee = new ElasticEnsemble();
 
+        //ADD THIS!!!!
+        J48 j48 = new J48();
+
+
         Classifiers[3] = rotf;
         Classifiers[4] = randf;
         Classifiers[5] = ibk;
@@ -74,8 +79,9 @@ public class ExperimentRunner {
         Classifiers[10] = tsf;
         Classifiers[11] = hc;
         Classifiers[12] = ee;
+        Classifiers[13] = j48;
         String[] ClassifierNames = {"LinearPerceptron", "EnhancedLinearPerceptron", "LinearPerceptronEnsemble",
-                                    "RotF", "RandF", "IBk", "DTW_1NN", "NB", "DD_DTW", "BOSS", "TSF", "HiveCote", "ElasticEnsemble"};
+                                    "RotF", "RandF", "IBk", "DTW_1NN", "NB", "DD_DTW", "BOSS", "TSF", "HiveCote", "ElasticEnsemble", "C4.5"};
 
 
         Instances[] trains = new Instances[Datasets.length];
@@ -96,7 +102,7 @@ public class ExperimentRunner {
         for (int d = 0; d < Datasets.length; d++) {
             //for (int c = 0; c < Classifiers.length; c++) {
 
-            for (int c = 6; c < 7; c++) {
+            for (int c = 13; c < 14; c++) {
                 for (int r = 0; r < 5; r++) {
                     try {
 //                    Classifiers[c].buildClassifier(trains[d]);
