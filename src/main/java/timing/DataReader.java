@@ -21,11 +21,17 @@ public class DataReader {
 //        d.writeFoldCSV(Stat.TOTAL_CLASSIFY_TIME, "results/resamples", 0);
 //        d.writeFoldCSV(Stat.TRAIN_TIME, "results/resamples", 0);
 
-        d.loadMultiFolds("results/resamples", NewRunner.DatasetType.TEST, 5);
-        d.writeFoldsAverageCSV(Stat.ACCURACY, "results/resamples", 5);
-        d.writeFoldsAverageCSV(Stat.AVG_CLASSIFY_TIME, "results/resamples", 5);
-        d.writeFoldsAverageCSV(Stat.TOTAL_CLASSIFY_TIME, "results/resamples", 5);
-        d.writeFoldsAverageCSV(Stat.TRAIN_TIME, "results/resamples", 5);
+//        d.loadMultiFolds("results/resamples", NewRunner.DatasetType.TEST, 5);
+//        d.writeFoldsAverageCSV(Stat.ACCURACY, "results/resamples", 5);
+//        d.writeFoldsAverageCSV(Stat.AVG_CLASSIFY_TIME, "results/resamples", 5);
+//        d.writeFoldsAverageCSV(Stat.TOTAL_CLASSIFY_TIME, "results/resamples", 5);
+//        d.writeFoldsAverageCSV(Stat.TRAIN_TIME, "results/resamples", 5);
+
+        d.loadMultiFolds("results/perceptrons", NewRunner.DatasetType.TEST, 5);
+        d.writeFoldsAverageCSV(Stat.ACCURACY, "results/perceptrons", 5);
+        d.writeFoldsAverageCSV(Stat.AVG_CLASSIFY_TIME, "results/perceptrons", 5);
+        d.writeFoldsAverageCSV(Stat.TOTAL_CLASSIFY_TIME, "results/perceptrons", 5);
+        d.writeFoldsAverageCSV(Stat.TRAIN_TIME, "results/perceptrons", 5);
 
         System.out.println("Done");
 
@@ -169,22 +175,27 @@ public class DataReader {
 
         for (int df = 0; df < dataFiles.size(); df++) {
             DataFile toAdd = dataFiles.get(df);
-            for (int dp = 0; dp < points.size(); dp++) {
-                if ((dataFiles.get(dp).dataset.compareTo(toAdd.dataset) == 0) && (dataFiles.get(dp).classifier.compareTo(toAdd.classifier) == 0)) {
-                    points.get(dp).dataFiles.add(toAdd);
-                    break;
-                }
-                else {
-                    DataPoint newDP = new DataPoint(toAdd.classifier, toAdd.dataset);
-                    newDP.dataFiles.add(toAdd);
-                    points.add(newDP);
-                    break;
-                }
-            }
+
             if (points.size() == 0) {
                 DataPoint newDP = new DataPoint(toAdd.classifier, toAdd.dataset);
                 newDP.dataFiles.add(toAdd);
                 points.add(newDP);
+            }
+            else {
+                boolean added = false;
+                for (int dp = 0; dp < points.size(); dp++) {
+                    if ((dataFiles.get(dp).dataset.compareTo(toAdd.dataset) == 0) && (dataFiles.get(dp).classifier.compareTo(toAdd.classifier) == 0)) {
+                        points.get(dp).dataFiles.add(toAdd);
+                        added = true;
+                        break;
+                    }
+                }
+
+                if (!added) {
+                    DataPoint newDP = new DataPoint(toAdd.classifier, toAdd.dataset);
+                    newDP.dataFiles.add(toAdd);
+                    points.add(newDP);
+                }
             }
         }
 
@@ -298,7 +309,7 @@ public class DataReader {
             double total = 0;
             for (DataFile d : dataFiles) {
                 if (d.accuracy == 0.0) {
-                    throw new Exception("Accuracy is 0.");
+                    //throw new Exception("Accuracy is 0.");
                 } else {
                     total += d.accuracy;
                 }
