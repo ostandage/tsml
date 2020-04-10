@@ -1,6 +1,7 @@
 package timing;
 
-import timeseriesweka.classifiers.distance_based.FastDTW_1NN;
+import Coursework.ResultWrapper;
+import Coursework.TimingExperiment;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Instances;

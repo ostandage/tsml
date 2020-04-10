@@ -5,9 +5,7 @@ import experiments.data.DatasetLists;
 
 public class EvaluationRunner {
 
-
-    public static void main(String[] args) throws Exception{
-
+    public static void main(String[] args) throws Exception {
         String[] ClassifierNames = {"LinearPerceptron", "EnhancedLinearPerceptron", "LinearPerceptronEnsemble",
                 "RotF", "RandF", "IBk", "NB", "DD_DTW", "BOSS", "TSF", "C4.5"};
 
@@ -15,10 +13,9 @@ public class EvaluationRunner {
         double[][] nlls = new double[DatasetLists.ReducedUCI.length][ClassifierNames.length];
         double[][] meanAUROCs = new double[DatasetLists.ReducedUCI.length][ClassifierNames.length];
 
-
         for (int d = 0; d < DatasetLists.ReducedUCI.length; d++) {
             for (int c = 0; c < ClassifierNames.length; c++) {
-                int numResamples = 5;
+                int numResamples = 10;
                 ClassifierResults[] crs = new ClassifierResults[numResamples];
 
                 double balAcc = 0;
@@ -47,14 +44,10 @@ public class EvaluationRunner {
         for (int d = 0; d < DatasetLists.ReducedUCI.length; d++) {
             System.out.print(DatasetLists.ReducedUCI[d]);
             for (int c = 0; c < ClassifierNames.length; c++) {
+                //change array
                 System.out.print("," + meanAUROCs[d][c]);
             }
             System.out.println();
         }
-
-
-
     }
-
-
 }

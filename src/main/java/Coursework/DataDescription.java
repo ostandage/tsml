@@ -10,7 +10,6 @@ import java.io.File;
 public class DataDescription {
 
     public static void main(String[] args) {
-
         File dataDir = new File("data/UCIContinuous");
         String[] datasets = DatasetLists.ReducedUCI;
         Instances[] trains = new Instances[datasets.length];
@@ -31,16 +30,11 @@ public class DataDescription {
                             trains[d].numClasses()  + "," +
                             distribution);
         }
-
-
-
     }
-
 
     public static String classDistribution(Instances train, Instances test) {
         Instances data = new Instances(train);
         data.addAll(test);
-
         int[] classDistribution = new int[data.numInstances()];
 
         for (Instance instance : data) {
@@ -60,5 +54,4 @@ public class DataDescription {
         }
         return distribution;
     }
-
 }

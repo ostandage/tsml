@@ -1,17 +1,3 @@
-//Want to have some sort of mechanism to configure the enhancedLinearPerceptron.
-//Seems very inefficient to be duplicating so much data. Maybe a quicker way with references / on the fly ignore.
-
-
-//Have an array of attributes for each ensemble to use, then copy the build / classify methods from the elp
-//class, and instead of looping through all attributes, only loop through those that are in the array.
-//More efficient and less messing around with copying / references.
-
-
-//Disable attributes after build. Clone the base classifier. Means we only have to build one classifier for the ensemble.
-//Could just enable and disable on the fly from an array. Store class value in classifier and have a reset method.
-
-
-
 package Coursework;
 
 import labs.WekaTools;
@@ -28,6 +14,7 @@ public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
     private boolean[][] AttributesToDisable;
 
     public static void main (String[] args) throws Exception {
+        //Testing
         LinearPerceptronEnsemble lpe = new LinearPerceptronEnsemble();
         Instances train = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TRAIN.arff");
         Instances test = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TEST.arff");
@@ -43,7 +30,6 @@ public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
         eval.evaluateModel(lpe, test);
         System.out.println(eval.toSummaryString());
         System.out.println("Error Rate: " + eval.errorRate());
-
     }
 
     public LinearPerceptronEnsemble() {
@@ -51,7 +37,6 @@ public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
         EnsembleSize = 50;
         AttributeSubsetProportion = 0.5;
     }
-
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
@@ -69,9 +54,7 @@ public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
         int numAttributesToDisable = data.numAttributes() - (int) (data.numAttributes() * AttributeSubsetProportion);
         AttributesToDisable = new boolean[EnsembleSize][data.numAttributes()];
 
-
         for (int i = 0; i < EnsembleSize; i++) {
-
             //Work out which attributes this classifier will (won't) use.
             int count = 0;
             while (count < numAttributesToDisable) {
@@ -83,7 +66,6 @@ public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
             }
             AttributesToDisable[i][data.classIndex()] = true;
         }
-
         super.buildClassifier(data);
     }
 
@@ -107,30 +89,18 @@ public class LinearPerceptronEnsemble extends EnhancedLinearPerceptron {
         }
 
         return curMax;
-        //        double[] dist = distributionForInstance(data);
-//        int curMaxIndex = 0;
-//        for (int i = 1; i < dist.length; i++) {
-//            if (dist[i] > dist[curMaxIndex]) {
-//                curMaxIndex = i;
-//            }
-//        }
-//        return dist[curMaxIndex];
     }
 
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
         double[] distribution = new double[instance.numClasses()];
 
-
         for (int e = 0; e < EnsembleSize; e++) {
-
             for(int attr = 0; attr < AttributesToDisable[e].length; attr++) {
                 AttributeDisabled[attr] = AttributesToDisable[e][attr];
             }
-
             double prediction = super.classifyInstance(instance);
             distribution[(int) prediction]++;
-
         }
 
         for (int i = 0; i < instance.numClasses(); i++) {

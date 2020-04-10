@@ -1,9 +1,3 @@
-//Need to confirm:
-//      - Bias term = y offset - allows for shifting. Could be useful for -1 and 1 class vals.
-
-
-//Classify instance should return one of the class values. Change part 1 data to be 0 and 1 and check
-
 package Coursework;
 
 import labs.WekaTools;
@@ -23,26 +17,19 @@ public class LinearPerceptron extends AbstractClassifier {
     protected double LearningRate;
     protected boolean[] AttributeDisabled;
     protected int NumAttrDisabled;
-
-
-    //change back to private.
     protected double[] w;
 
     public static void main (String[] args) throws Exception{
-
-
-
-//        Instances part1Data = WekaTools.loadClassificationData("data/labsdata/part1.arff");
-//        lp.setMaxNoIterations(100000000);
-//        lp.buildClassifier(part1Data);
-//        System.out.println("W: " + lp.w[0] + ", " +  lp.w[1]);
-//        System.out.println("Done");
+        //Testing
+        LinearPerceptron lp = new LinearPerceptron();
+        Instances part1Data = WekaTools.loadClassificationData("data/labsdata/part1.arff");
+        lp.setMaxNoIterations(100000000);
+        lp.buildClassifier(part1Data);
+        System.out.println("W: " + lp.w[0] + ", " +  lp.w[1]);
+        System.out.println("Done");
 
         Instances train = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TRAIN.arff");
         Instances test = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TEST.arff");
-
-        //MaxValue =         2147483647
-        LinearPerceptron lp = new LinearPerceptron();
         lp.setMaxNoIterations(1000000);
         lp.buildClassifier(train);
         lp.setLearningRate(0.7);
@@ -50,42 +37,22 @@ public class LinearPerceptron extends AbstractClassifier {
         Evaluation eval = new Evaluation(train);
         eval.evaluateModel(lp, test);
         System.out.println(eval.toSummaryString());
-
-
-
         System.out.println("Error Rate: " + eval.errorRate());
-        //100000000 gives accuracy of 64.4385%
-
-        //100000 gives accuracy of 77.0053%
-//        MultilayerPerceptron mlp = new MultilayerPerceptron();
-//        mlp.setLearningRate(1);
-//        mlp.setHiddenLayers("0");
-//        mlp.setGUI(false);
-//        mlp.setTrainingTime(100000);
-//        mlp.buildClassifier(train);
-//        Evaluation eval2 = new Evaluation(train);
-//        eval2.evaluateModel(mlp, test);
-//        System.out.println(eval2.toSummaryString());
-//        System.out.println("Error Rate: " + eval2.errorRate());
-
     }
 
 
     public LinearPerceptron () {
-        //MaxNoIterations = Integer.MAX_VALUE;
-        MaxNoIterations = 100000;
+        MaxNoIterations = Integer.MAX_VALUE;
         Bias = 0;
         LearningRate = 1;
     }
 
     public LinearPerceptron (int numAttributes) {
-        //MaxNoIterations = Integer.MAX_VALUE;
-        MaxNoIterations = 100000;
+        MaxNoIterations = Integer.MAX_VALUE;
         Bias = 0;
         LearningRate = 1;
         AttributeDisabled = new boolean[numAttributes];
     }
-
 
     public boolean disableAttribute(int attrIndex) {
         if (AttributeDisabled[attrIndex] == false) {
@@ -114,7 +81,6 @@ public class LinearPerceptron extends AbstractClassifier {
         return capabilities;
     }
 
-
     @Override
     public void buildClassifier(Instances data) throws Exception {
         getCapabilities().testWithFail(data);
@@ -130,15 +96,15 @@ public class LinearPerceptron extends AbstractClassifier {
         //Disable the class value as a predictor.
         disableAttribute(data.classIndex());
 
-
-        //Doesn't seem to work well random initial vector.
         w = new double[data.numAttributes()];
         Random rnd = new Random();
         for (int i = 0; i < w.length; i++) {
-            //Include -ve random?
             w[i] = rnd.nextInt();
+            if (rnd.nextBoolean()) {
+                //Randomly make number negative.
+                w[i] = w[i] * -1;
+            }
         }
-
 
         int iteration = 0;
         do {
@@ -152,7 +118,6 @@ public class LinearPerceptron extends AbstractClassifier {
 
                 for (int j = 0; j < data.numAttributes(); j++) {
                     if (!AttributeDisabled[j]) {
-                        //                                  cv - pred
                         double deltaW = (0.5 * LearningRate * (t - y) * data.instance(i).value(j));
                         w[j] = w[j] + deltaW;
                     }

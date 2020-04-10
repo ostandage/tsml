@@ -18,28 +18,29 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
     private boolean DataAlreadyStandardised;
 
     public static void main (String[] args) throws Exception{
-//        Instances part1Data = WekaTools.loadClassificationData("data/labsdata/part1.arff");
-//        part1Data.setClassIndex(part1Data.numAttributes() -1);
-//        EnhancedLinearPerceptron elp = new EnhancedLinearPerceptron();
-//        elp.setMaxNoIterations(100000000);
-//
-//        elp.buildClassifier(part1Data);
-//        System.out.println("W: " + elp.w[0] + ", " +  elp.w[1]);
-//        System.out.println("Done");
+        //Testing
+        Instances part1Data = WekaTools.loadClassificationData("data/labsdata/part1.arff");
+        part1Data.setClassIndex(part1Data.numAttributes() -1);
+        EnhancedLinearPerceptron elp = new EnhancedLinearPerceptron();
+        elp.setMaxNoIterations(100000000);
+
+        elp.buildClassifier(part1Data);
+        System.out.println("W: " + elp.w[0] + ", " +  elp.w[1]);
+        System.out.println("Done");
 
         Instances train = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TRAIN.arff");
         Instances test = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TEST.arff");
 
-//        elp.setUseOnlineAlgorithm(false);
-//        elp.buildClassifier(train);
-//        Evaluation eval = new Evaluation(train);
-//        eval.evaluateModel(elp, test);
-//        System.out.println("Error Rate Online: " + eval.errorRate());
-//
-//        elp.setUseOnlineAlgorithm(false);
-//        elp.buildClassifier(train);
-//        eval.evaluateModel(elp, test);
-//        System.out.println("Error Rate Offline: " + eval.errorRate());
+        elp.setUseOnlineAlgorithm(false);
+        elp.buildClassifier(train);
+        Evaluation eval = new Evaluation(train);
+        eval.evaluateModel(elp, test);
+        System.out.println("Error Rate Online: " + eval.errorRate());
+
+        elp.setUseOnlineAlgorithm(false);
+        elp.buildClassifier(train);
+        eval.evaluateModel(elp, test);
+        System.out.println("Error Rate Offline: " + eval.errorRate());
 
         System.out.println("Model Selection");
         EnhancedLinearPerceptron ms = new EnhancedLinearPerceptron();
@@ -63,15 +64,6 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
         NumCVFoldsForModelSelection = 10;
     }
 
-    public EnhancedLinearPerceptron(int numAttributes) {
-        super(numAttributes);
-        StandardiseAttributes = true;
-        UseOnlineAlgorithm = true;
-        ModelSelection = false;
-        NumCVFoldsForModelSelection = 10;
-    }
-
-
     @Override
     public void buildClassifier(Instances data) throws Exception {
         getCapabilities().testWithFail(data);
@@ -86,10 +78,7 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
         }
 
         disableAttribute(data.classIndex());
-
-
         Instances processedData = new Instances(data);
-
 
         if (StandardiseAttributes && !DataAlreadyStandardised) {
             //calculate mean of each attribute.
@@ -197,8 +186,11 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
         w = new double[data.numAttributes()];
         Random rnd = new Random();
         for (int i = 0; i < w.length; i++) {
-            //Include -ve random?
             w[i] = rnd.nextInt();
+            if (rnd.nextBoolean()) {
+                //Randomly make number negative.
+                w[i] = w[i] * -1;
+            }
         }
 
         int iteration = 0;
@@ -265,7 +257,6 @@ public class EnhancedLinearPerceptron extends LinearPerceptron {
         if (StandardiseAttributes) {
             standardiseInstance(instance);
         }
-
         return super.classifyInstance(instance);
     }
 

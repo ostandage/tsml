@@ -1,27 +1,14 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-package timing;
-
-import timeseriesweka.classifiers.TrainAccuracyEstimator;
+package Coursework;
 
 import java.text.DecimalFormat;
 
-/**
- *
- * @author ostandage
- */
 public class TimingResults {
     private double[] classifyTime;
     private double trainTime;
-    private TrainAccuracyEstimator trainAccuracyEstimator;
-    
-    public TimingResults (double[] classifyTime, double trainTime, TrainAccuracyEstimator trainAccuracyEstimator) {
+
+    public TimingResults (double[] classifyTime, double trainTime) {
         this.classifyTime = classifyTime;
         this.trainTime = trainTime;
-        this.trainAccuracyEstimator = trainAccuracyEstimator;
     }
     
     public double averageTime() {
@@ -38,10 +25,6 @@ public class TimingResults {
     
     public double[] getTimes() {
         return classifyTime;
-    }
-
-    public TrainAccuracyEstimator getTrainAccuracyEstimator() {
-        return trainAccuracyEstimator;
     }
 
     private double sumArray(double[] data) {
@@ -77,7 +60,7 @@ public class TimingResults {
         }
         averageTrainTime = averageTrainTime / results.length;
         
-        return new TimingResults(times, averageTrainTime, results[0].getTrainAccuracyEstimator());
+        return new TimingResults(times, averageTrainTime);
     }
     
 }
