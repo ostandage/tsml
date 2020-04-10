@@ -29,7 +29,7 @@ public class LinearPerceptron extends AbstractClassifier {
     protected double[] w;
 
     public static void main (String[] args) throws Exception{
-        LinearPerceptron lp = new LinearPerceptron();
+
 
 
 //        Instances part1Data = WekaTools.loadClassificationData("data/labsdata/part1.arff");
@@ -42,13 +42,17 @@ public class LinearPerceptron extends AbstractClassifier {
         Instances test = WekaTools.loadClassificationData("data/UCIContinuous/blood/blood_TEST.arff");
 
         //MaxValue =         2147483647
+        LinearPerceptron lp = new LinearPerceptron();
         lp.setMaxNoIterations(1000000);
         lp.buildClassifier(train);
-        lp.setLearningRate(1);
+        lp.setLearningRate(0.7);
         lp.setBiasTerm(1);
         Evaluation eval = new Evaluation(train);
         eval.evaluateModel(lp, test);
         System.out.println(eval.toSummaryString());
+
+
+
         System.out.println("Error Rate: " + eval.errorRate());
         //100000000 gives accuracy of 64.4385%
 
@@ -84,13 +88,19 @@ public class LinearPerceptron extends AbstractClassifier {
 
 
     public boolean disableAttribute(int attrIndex) {
-        NumAttrDisabled++;
-        return AttributeDisabled[attrIndex] = true;
+        if (AttributeDisabled[attrIndex] == false) {
+            NumAttrDisabled++;
+            return AttributeDisabled[attrIndex] = true;
+        }
+        return false;
     }
 
     public boolean enableAttributes(int attrIndex) {
-        NumAttrDisabled--;
-        return AttributeDisabled[attrIndex] = false;
+        if (AttributeDisabled[attrIndex] == true) {
+            NumAttrDisabled--;
+            return AttributeDisabled[attrIndex] = false;
+        }
+        return false;
     }
 
     @Override
