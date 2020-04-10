@@ -1,4 +1,4 @@
-package labs;
+package Coursework;
 
 import weka.classifiers.Classifier;
 import weka.core.Instance;

@@ -2,7 +2,6 @@ package Coursework;
 
 import evaluation.storage.ClassifierResults;
 import experiments.data.DatasetLists;
-import labs.WekaTools;
 import timeseriesweka.classifiers.dictionary_based.BOSS;
 import timeseriesweka.classifiers.distance_based.DD_DTW;
 import timeseriesweka.classifiers.interval_based.TSF;
@@ -70,8 +69,8 @@ public class ExperimentRunner {
         }
 
         for (int d = 0; d < Datasets.length; d++) {
-            for (int c = 0; c < Classifiers.length; c++) {
-                for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 3; c++) {
+                for (int r = 0; r < 1; r++) {
                     try {
                         //Run experiment
                         TimingExperiment t = new TimingExperiment(Classifiers[c], tests[d], trains[d]);

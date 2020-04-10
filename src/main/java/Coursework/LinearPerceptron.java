@@ -1,7 +1,5 @@
 package Coursework;
 
-import labs.WekaTools;
-import org.apache.commons.math3.analysis.function.Max;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Evaluation;
 import weka.core.Capabilities;
@@ -42,16 +40,9 @@ public class LinearPerceptron extends AbstractClassifier {
 
 
     public LinearPerceptron () {
-        MaxNoIterations = Integer.MAX_VALUE;
+        MaxNoIterations = 1000000;
         Bias = 0;
         LearningRate = 1;
-    }
-
-    public LinearPerceptron (int numAttributes) {
-        MaxNoIterations = Integer.MAX_VALUE;
-        Bias = 0;
-        LearningRate = 1;
-        AttributeDisabled = new boolean[numAttributes];
     }
 
     public boolean disableAttribute(int attrIndex) {

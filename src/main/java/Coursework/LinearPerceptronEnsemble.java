@@ -1,6 +1,5 @@
 package Coursework;
 
-import labs.WekaTools;
 import weka.classifiers.Evaluation;
 import weka.core.Instance;
 import weka.core.Instances;
