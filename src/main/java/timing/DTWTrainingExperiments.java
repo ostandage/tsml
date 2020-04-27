@@ -7,7 +7,6 @@
 
 package timing;
 
-import timeseriesweka.classifiers.distance_based.FastDTW_1NN;
 import weka.core.Instances;
 
 import java.io.FileWriter;

@@ -6,13 +6,11 @@
 package timing;
 
 import evaluation.storage.ClassifierResults;
-import statistics.simulators.ShapeletModel;
 import timeseriesweka.classifiers.dictionary_based.*;
 import timeseriesweka.classifiers.distance_based.*;
 import timeseriesweka.classifiers.distance_based.elastic_ensemble.DTW1NN;
 import timeseriesweka.classifiers.frequency_based.RISE;
 import timeseriesweka.classifiers.frequency_based.cRISE;
-import timeseriesweka.classifiers.hybrids.FlatCote;
 import timeseriesweka.classifiers.hybrids.cote.HiveCotePostProcessed;
 import timeseriesweka.classifiers.interval_based.LPS;
 import timeseriesweka.classifiers.interval_based.TSBF;
@@ -25,7 +23,6 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import weka.core.Instances;
-import weka_extras.classifiers.ensembles.HIVE_COTE;
 
 import java.io.*;
 import java.util.ArrayList;

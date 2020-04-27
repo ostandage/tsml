@@ -21,7 +21,7 @@ import weka.attributeSelection.PrincipalComponents;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import timeseriesweka.classifiers.distance_based.FastDTW_1NN;
+import timing.FastDTW_1NN;
 import weka_extras.classifiers.kNN;
 import weka.core.Instance;
 import weka.core.Instances;

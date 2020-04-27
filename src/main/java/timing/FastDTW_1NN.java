@@ -12,7 +12,7 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package timeseriesweka.classifiers.distance_based;
+package timing;
 import fileIO.OutFile;
 
 import java.util.*;
@@ -30,42 +30,6 @@ import weka.core.*;
 import timeseriesweka.classifiers.ParameterSplittable;
 import timeseriesweka.classifiers.SaveParameterInfo;
 import timeseriesweka.classifiers.TrainAccuracyEstimator;
-
-/* 
- * The reason for specialising is this class has the option of searching for 
-the optimal window length
- * through a grid search of values.
- * 
- * By default this class does not do a search of window size.  
- * To search for the window size call
- * optimiseWindow(true);
- * By default, this does a leave one out cross validation on every possible 
-window size, then sets the proportion to the one with the largest accuracy,
-ties taking the smallest window (slow)
-. This will be slow, and not how the Keogh group do it. They do a stepwise increase
-of window by 1% until there is no improvement for three steps. 
-
-This has two possible speedups
-
-1. Optimize window. This starts at full window, w=100%, and records the maximum warp 
- made over the data set, say k. Rather than move to w=w-1 it moves to w=k if k<w-1,
-thus saving many evaluations
-
-2. Early abandon on a window. If, during the accuracy calculation for a single window size,
-the accuracy cannot be better than the best so far, we can quit. 
-
-3. Early abandon on the nearest neighbour calculation. One obvious speed up is 
-to store the distance matrix for a given window size. This requires O(n^2) extra
-memory and means you cannot early abandon individual distances. 
-
-O DO: 
-DONE: avoid repeated evaluations for short series. Needs a debug
-2. Set up check pointing
-
-
-CHECK THIS: For implementation reasons, a window size of 1 
-is equivalent to Euclidean distance (rather than a window size of 0
- */
 
 public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInfo, TrainAccuracyEstimator,SaveEachParameter,ParameterSplittable{
     private boolean optimiseWindow=false;
@@ -101,7 +65,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     } 
     public void setFindTrainAccuracyEstimate(boolean setCV){
         if(setCV==true)
-            throw new UnsupportedOperationException("Doing a top leve CV is not yet possible for FastDTW_1NN. It cross validates to optimize, so could store those, but will be biased"); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Doing a top level CV is not yet possible for FastDTW_1NN. It cross validates to optimize, so could store those, but will be biased"); //To change body of generated methods, choose Tools | Templates.
 //This method doe
     }
     public int getK() {return k;}

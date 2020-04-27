@@ -9,17 +9,25 @@ public class QuickRunner {
 
         //postProcessHiveCote();
         //dtwKnnTesting();
-        DTWTrainingTesting();
+        //DTWTrainingTesting();
+
+        for (int i = 2; i < 257; i = i+3) {
+            System.out.print(",E" + i);
+        }
 
     }
 
     private static void DTWTrainingTesting() throws Exception {
         String[] datasets = DatasetLists.tscProblems85;
-        boolean skip = false;
-        //for (int i = 0; i < datasets.length; i++) {
-        for (int i = datasets.length-1; i > 0; i--) {
+        boolean skip = true;
+        for (int i = 0; i < datasets.length; i++) {
+        //for (int i = datasets.length-1; i > 0; i--) {
             //Allows us to resume at a given dataset.
-            if (datasets[i] == "ElectricDevices") {
+
+            //FordB
+            //HandOutlines
+
+            if (datasets[i] == "Haptics") {
                 skip = false;
             }
 

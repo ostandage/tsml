@@ -18,7 +18,7 @@ import experiments.data.DatasetLists;
 import experiments.data.DatasetLoading;
 import fileIO.OutFile;
 import utilities.ClassifierTools;
-import timeseriesweka.classifiers.distance_based.FastDTW_1NN;
+import timing.FastDTW_1NN;
 import weka.core.*;
 import weka.filters.SimpleBatchFilter;
 

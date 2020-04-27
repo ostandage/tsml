@@ -16,11 +16,7 @@ import weka.core.*;
 import fileIO.*;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
-import timeseriesweka.classifiers.distance_based.FastDTW_1NN;
-import weka.filters.*;
-
-
-
+import timing.FastDTW_1NN;
 
 
 public class SimulateSpectralData extends DataSimulator{
