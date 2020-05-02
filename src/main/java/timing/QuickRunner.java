@@ -7,13 +7,9 @@ public class QuickRunner {
 
     public static void main(String[] args) throws Exception {
 
-        //postProcessHiveCote();
+        postProcessHiveCote();
         //dtwKnnTesting();
         //DTWTrainingTesting();
-
-        for (int i = 2; i < 257; i = i+3) {
-            System.out.print(",E" + i);
-        }
 
     }
 
@@ -82,8 +78,8 @@ public class QuickRunner {
 
 
     private static void postProcessHiveCote() {
-        String Identifier = "20200116";
-        String Resample = "1";
+        String Identifier = "20200305";
+        String Resample = "5";
         String ClassifierIndex = "25";
         String DataPath = "data/Univariate_arff/";
         String ResultsPath = "results";

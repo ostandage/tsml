@@ -172,7 +172,7 @@ public abstract class AbstractPostProcessedCote {
             st.append("\n");
         }
         FileWriter out = new FileWriter(outputDir+CLASSIFIER_NAME+"/Predictions/"+datasetName+"/testFold"+resampleId+".csv");
-        out.append(CLASSIFIER_NAME+","+datasetName+",test\n");
+        out.append(datasetName+","+CLASSIFIER_NAME+",test\n");
         out.append("constituentCvAccs");
         for(int c = 0; c < classifierNames.size(); c++){
             out.append(","+classifierNames.get(c));
