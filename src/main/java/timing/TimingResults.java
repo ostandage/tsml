@@ -1,35 +1,27 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * Holds the timing data for a single classifier-dataset fold.
  */
 package timing;
 
-import timeseriesweka.classifiers.TrainAccuracyEstimator;
-
 import java.text.DecimalFormat;
 
-/**
- *
- * @author ostandage
- */
 public class TimingResults {
-    private double[] classifyTime;
+    //Stores the time to classify each test instance.
+    private double[] classifyTimes;
+
     private double trainTime;
-    private TrainAccuracyEstimator trainAccuracyEstimator;
-    
-    public TimingResults (double[] classifyTime, double trainTime, TrainAccuracyEstimator trainAccuracyEstimator) {
-        this.classifyTime = classifyTime;
+
+    public TimingResults (double[] classifyTimes, double trainTime) {
+        this.classifyTimes = classifyTimes;
         this.trainTime = trainTime;
-        this.trainAccuracyEstimator = trainAccuracyEstimator;
     }
     
     public double averageTime() {
-        return calcMean(classifyTime);
+        return calcMean(classifyTimes);
     }
     
     public double totalClassifyTime() {
-        return sumArray(classifyTime);
+        return sumArray(classifyTimes);
     }
     
     public double trainTime() {
@@ -37,11 +29,7 @@ public class TimingResults {
     }
     
     public double[] getTimes() {
-        return classifyTime;
-    }
-
-    public TrainAccuracyEstimator getTrainAccuracyEstimator() {
-        return trainAccuracyEstimator;
+        return classifyTimes;
     }
 
     private double sumArray(double[] data) {
@@ -77,7 +65,6 @@ public class TimingResults {
         }
         averageTrainTime = averageTrainTime / results.length;
         
-        return new TimingResults(times, averageTrainTime, results[0].getTrainAccuracyEstimator());
+        return new TimingResults(times, averageTrainTime);
     }
-    
 }

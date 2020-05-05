@@ -1,17 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * Wrapper class to hold both ClassifierResults and TimingResults files for a single experiment.
  */
 package timing;
 
 import evaluation.storage.ClassifierResults;
-import weka.classifiers.Classifier;
 
-/**
- *
- * @author ostandage
- */
 public class ResultWrapper {
     private TimingResults timingResults;
     private ClassifierResults classifierResults;

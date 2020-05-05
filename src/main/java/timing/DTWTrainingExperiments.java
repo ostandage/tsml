@@ -1,9 +1,7 @@
-//Run timing experiment to find best accuracy when varying the window size.
-//Run timing experiment just changing R (window size), K=1 (default)
-//Run timing experiemnt just changing K (NN), R=1 (default)
-//Run timing experiment changing both.
-//Already have data for both on default.
-
+/**
+ * Class used to test the effects of training DTW parameters. Tests tuning R & K independently, and then R given K is
+ * already tuned.
+ */
 
 package timing;
 
@@ -22,7 +20,7 @@ public class DTWTrainingExperiments {
     public static void main(String[] args) throws Exception {
 
         String dataset = "ArrowHead";
-        String datapath = "data/Univariate_arff/" + dataset + "/"+ dataset;
+        String datapath = "data/Univariate_arff/" + dataset;
         String resultsPath = "results/DTWTraining/" + dataset + ".csv";
 
         if (args.length > 0) {
@@ -31,8 +29,8 @@ public class DTWTrainingExperiments {
             resultsPath = args[2];
         }
 
-        Instances train = WekaTools.loadClassificationData(datapath + "_TRAIN.arff");
-        Instances test =  WekaTools.loadClassificationData(datapath +"_TEST.arff");
+        Instances train = WekaTools.loadData(datapath, TimingRunner.DatasetType.TRAIN);
+        Instances test =  WekaTools.loadData(datapath, TimingRunner.DatasetType.TEST);
 
         numFolds = 10;
         threads = 4;

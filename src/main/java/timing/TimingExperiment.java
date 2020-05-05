@@ -1,7 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * This class allows a single fold of a classifier-dataset combination to be benchmarked for accuracy and time.
  */
 package timing;
 
@@ -9,16 +7,11 @@ import evaluation.storage.ClassifierResults;
 import java.io.FileReader;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.IBk;
 import weka.core.Instance;
 import weka.core.Instances;
 
-/**
- *
- * @author ostandage
- */
 public class TimingExperiment {
     
     private Classifier classifier;
@@ -26,43 +19,14 @@ public class TimingExperiment {
     private Instances train;
     private double timeForTrain;
     
-    public static void main(String Args[]) throws Exception{
-        IBk c = new IBk();
-        Instances te = loadClassificationData("data/ECG5000_TEST.arff");
-        Instances tr = loadClassificationData("data/ECG5000_TRAIN.arff");
-        TimingExperiment t = new TimingExperiment(c, te, tr);
-
-
-    }
-    
-    public TimingExperiment(Classifier classifier, Instances data, Instances train) throws Exception {
+    public TimingExperiment(Classifier classifier, Instances data, Instances train) {
         this.classifier = classifier; 
         this.test = data;
         this.train = train;
     }
 
-
-    public ClassifierResults runCrossValidation(int numFolds) throws Exception{
-        ClassifierResults[] foldResults = new ClassifierResults[numFolds];
-        int foldLength = train.numInstances() / numFolds;
-        for (int fold = 0; fold < numFolds; fold++){
-
-            foldResults[fold] = trainFold(fold, foldLength);
-        }
-
-        int bestIndex = 0;
-
-        for (int fold = 0; fold < foldResults.length; fold++) {
-
-            if (foldResults[fold].getAcc() > foldResults[bestIndex].getAcc()) {
-                bestIndex = fold;
-            }
-        }
-
-        return foldResults[bestIndex];
-    }
-
-    public ClassifierResults trainFold(int foldIndex, int foldLength) throws Exception{
+    //This method estimates the accuracy of a classifier based on just training data.
+    public ClassifierResults getTrainAccuracy(int foldIndex, int foldLength) throws Exception{
         ClassifierResults foldResult = new ClassifierResults();
         foldResult.setTimeUnit(TimeUnit.NANOSECONDS);
 
@@ -92,33 +56,19 @@ public class TimingExperiment {
         return foldResult;
     }
 
-    public ClassifierResults runOptimalTraining(int numCVFolds) throws Exception{
-
-        //If classifier is tuneable run CV with varing parameters, else just train.
-        if (false) {
-
-        }
-        return normalTrain();
-    }
-
-    public ClassifierResults normalTrain() throws Exception{
-        return trainFold(0, train.numInstances());
-    }
-
     public ResultWrapper runExperiment(int resample) throws Exception {
-        
         if (resample > 0) {
             shuffleData((test.numInstances() + train.numInstances()) * 10, resample);
         }
 
+        int foldSize = (int) (train.numInstances() * 0.2);
+        ClassifierResults trainResults = getTrainAccuracy(0, foldSize);
+
         double startTrain = System.nanoTime();
         classifier.buildClassifier(train);
-        double trainTime = System.nanoTime() - startTrain;
-        timeForTrain = trainTime;
+        timeForTrain = System.nanoTime() - startTrain;
 
-        ClassifierResults trainResults = runOptimalTraining(10);
         double[] times = new double[test.numInstances()];
-
         ClassifierResults cresults = new ClassifierResults();
         cresults.setTimeUnit(TimeUnit.NANOSECONDS);
 
@@ -138,7 +88,7 @@ public class TimingExperiment {
             cresults.addPrediction(inst.classValue(), dist, maxIndex, (long)time, "");
         }
 
-        TimingResults tresults = new TimingResults(times, trainTime, null);
+        TimingResults tresults = new TimingResults(times, timeForTrain);
         cresults.finaliseResults();
         System.out.println("Accuracy: " + cresults.getAcc());
 
@@ -156,32 +106,7 @@ public class TimingExperiment {
         train = new Instances(all, 0, numTrain);
         test = new Instances(all, numTrain, all.numInstances()-numTrain);
     }
-    
-    private void train() throws Exception {
-        double startTime = System.nanoTime();
-        classifier.buildClassifier(train);
-        timeForTrain = System.nanoTime() - startTime;
-    }
-    
-    private static Instances loadClassificationData(String path) {
-        Instances train;
-       
-        FileReader reader;
-        try
-        {
-            reader = new FileReader(path);
-            train = new Instances(reader);
-            train.setClassIndex(train.numAttributes() - 1);
-            return train;
-            
-        } catch (Exception e)
-        {
-            System.out.println("Exception: " + e);
-        }
-        return null;
-    }
-      
-    
+
     public double getTrainTime() {
         return timeForTrain;
     }
@@ -201,5 +126,4 @@ public class TimingExperiment {
         }
         return output;
     }
-
 }

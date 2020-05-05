@@ -1,3 +1,6 @@
+/**
+ * Class to create scripts for HPC job submission and various bash scripts.
+ */
 package timing;
 
 import experiments.data.DatasetLists;

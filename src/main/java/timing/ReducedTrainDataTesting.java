@@ -1,19 +1,20 @@
+/**
+ * Class to experiment with reduced training data. The dataset and output path is passed in via command line args.
+ * Can optionally use threads to increase speed.
+ */
 package timing;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Instances;
-
 import java.io.FileWriter;
 import java.util.Random;
-
-import static timing.NewRunner.createClassifierArray;
-import static timing.NewRunner.loadData;
+import static timing.TimingRunner.createClassifierArray;
+import static timing.WekaTools.loadData;
 
 public class ReducedTrainDataTesting {
 
     private static String DataPath;
-    private static double PercentageTrainToUse;
     private static boolean UseThreads = true;
     private static String DatasetName;
     private static String OutputPath;
@@ -33,14 +34,16 @@ public class ReducedTrainDataTesting {
         String[] pathSplit = DataPath.split("/");
         DatasetName = pathSplit[pathSplit.length-1];
 
-        Instances dataTrain = loadData(DataPath, NewRunner.DatasetType.TRAIN);
-        Instances dataTest = loadData(DataPath, NewRunner.DatasetType.TEST);
+        Instances dataTrain = loadData(DataPath, TimingRunner.DatasetType.TRAIN);
+        Instances dataTest = loadData(DataPath, TimingRunner.DatasetType.TEST);
 
+        //Tests 20%, 40%, 60%, and 100% of the training data.
         double[] trainProportions = {0.2, 0.4, 0.6, 0.8, 1};
         Instances[] trainSplits = new Instances[trainProportions.length];
 
         Random rnd = new Random();
 
+        //randomly remove x percent of the train data.
         for (int i = 0; i < trainProportions.length; i++) {
             trainSplits[i] = new Instances(dataTrain);
             int numToDelete = (int) (dataTrain.numInstances() * (1-trainProportions[i]));
@@ -57,6 +60,7 @@ public class ReducedTrainDataTesting {
         csv.append("ClassifierIndex,ProportionTrainData,Accuracy,AvgClassifyTime,TotalClassifyTime,TrainTime\n");
         csv.flush();
 
+        //Create a thread for each classifier and start running.
         ProcessClassifer[] threads = new ProcessClassifer[classifiers.length];
         for (int c = 0; c < classifiers.length; c++) {
             threads[c] = new ProcessClassifer(csv, c, classifiers, trainSplits, trainProportions, dataTest);
@@ -64,16 +68,13 @@ public class ReducedTrainDataTesting {
                 threads[c].start();
             }
             else {
+                //runs sequentially.
                 threads[c].run();
             }
         }
-
     }
-    
 
     public static class ProcessClassifer extends Thread {
-
-
         private final FileWriter csv;
         private final int classifierIndex;
         private final Classifier[] classifiers;
@@ -105,16 +106,9 @@ public class ReducedTrainDataTesting {
                     csv.append(out);
                     csv.flush();
                 }
-
-
-
-
-
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-
     }
-
 }

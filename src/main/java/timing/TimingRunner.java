@@ -1,8 +1,8 @@
-//making DTW_1NN window size selection threaded (e.g. 100 windows, 100 threads)
-//1NN.
-
-//Discussion point about size of train data affecting test speed in real time.
-
+/**
+ * This class runs all of the timing experiments, performing the basis for benchmarking the classifiers. This class is
+ * designed to be run on the HPC, hence it uses command line arguments. This class represents a single classifier
+ * dataset fold.
+ */
 package timing;
 
 import evaluation.storage.ClassifierResults;
@@ -23,11 +23,10 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import weka.core.Instances;
-
 import java.io.*;
 import java.util.ArrayList;
 
-public class NewRunner {
+public class TimingRunner {
 
     private static final int NumClassifiers = 25;
     private static String Identifier;
@@ -35,8 +34,7 @@ public class NewRunner {
     private static int ClassifierIndex;
     private static String DataPath;
     private static String ResultsPath;
-    private static int NumThreads = 1;
-    private static boolean CrossValidate = true;
+    private static int NumThreads;
 
     public static enum DatasetType {
         TRAIN,
@@ -50,19 +48,15 @@ public class NewRunner {
     // 3    DataPath
     // 4    ResultsPath
     public static void main(String[] args) {
-        //To postprocess HC, set Identifier to folder name, then set dataPath to dataset, and classifier index to 25.
-
-
         //Debug
         if (args.length == 0) {
             Identifier = "dtwKNN";
             Resample = 0;
-            ClassifierIndex = 4;
-            DataPath = "data/Univariate_arff/InsectWingbeatSound";
+            ClassifierIndex = 1;
+            DataPath = "data/Univariate_arff/Beef";
             ResultsPath = "results";
             NumThreads = 2;
         }
-
         else {
             Identifier = args[0];
             Resample = Integer.parseInt(args[1]) - 1;
@@ -70,23 +64,21 @@ public class NewRunner {
             DataPath = args[3];
             ResultsPath = args[4];
 
-            //backwards compatibility.
+            //Optional parameter.
             if (args.length == 6) {
                 NumThreads = Integer.parseInt(args[5]);
             }
         }
 
         Classifier[] classifiers = createClassifierArray();
-        Instances dataTrain = loadData(DataPath, DatasetType.TRAIN);
-        Instances dataTest = loadData(DataPath, DatasetType.TEST);
+        Instances dataTrain = WekaTools.loadData(DataPath, DatasetType.TRAIN);
+        Instances dataTest = WekaTools.loadData(DataPath, DatasetType.TEST);
 
         File outputPath = new File(ResultsPath + "/" + Identifier);
         outputPath.mkdir();
 
-
-
         if (ClassifierIndex == 25) {
-            //Hive-Cote
+            //Hive-Cote is post processed as all of its constituents are already computed.
             ArrayList<String> hiveCoteClassifierNames = new ArrayList<>();
             hiveCoteClassifierNames.add(classifiers[7].getClass().getSimpleName());
             hiveCoteClassifierNames.add(classifiers[8].getClass().getSimpleName());
@@ -94,6 +86,7 @@ public class NewRunner {
             hiveCoteClassifierNames.add(classifiers[10].getClass().getSimpleName());
             hiveCoteClassifierNames.add(classifiers[11].getClass().getSimpleName());
 
+            //Postprocess the classifier results files.
             try {
                 System.out.println("HIVE-COTE");
                 HiveCotePostProcessed hivecote = new HiveCotePostProcessed(ResultsPath + "/" + Identifier + "/", dataTrain.relationName(), Resample, hiveCoteClassifierNames);
@@ -105,20 +98,17 @@ public class NewRunner {
                 e.printStackTrace();
             }
 
-            //Need to add up the timing stuff.
-
             String[] dataPathSplit = DataPath.split("/");
             String dataset = dataPathSplit[dataPathSplit.length-1];
             String[] hcClassifierNames = {"ElasticEnsemble", "ShapeletTransformClassifier", "RISE", "BOSS", "TSF"};
 
-
+            //Combine timing data.
             double avgClassifyTime = 0;
             double totalClassifyTime = 0;
             double trainTime = 0;
             try {
                 for (String classifier : hcClassifierNames) {
                     File timingFile = new File(ResultsPath + "/" + Identifier + "/" + classifier + "/Predictions/" + dataset + "/timing" + Resample + ".csv");
-
                     BufferedReader csvRead = new BufferedReader(new FileReader(timingFile));
                     csvRead.readLine();
                     String[] dataLine = csvRead.readLine().split(",");
@@ -136,28 +126,26 @@ public class NewRunner {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-
         }
         else {
+            //All other classifiers.
             System.out.println(dataTrain.relationName());
             System.out.println(classifiers[ClassifierIndex].getClass().getSimpleName());
             try {
+                //Benchmark classifier
                 TimingExperiment t = new TimingExperiment(classifiers[ClassifierIndex], dataTest, dataTrain);
-
-
                 ResultWrapper rw = t.runExperiment(Resample);
                 ClassifierResults cresults = rw.getClassifierResults();
                 TimingResults tresults = rw.getTimingResults();
                 ClassifierResults trainResults = rw.getTrainResults();
 
-
+                //Write results
                 File dir = new File(ResultsPath + "/" + Identifier + "/" + classifiers[ClassifierIndex].getClass().getSimpleName() + "/Predictions/" + dataTrain.relationName() + "/" );
                 dir.mkdirs();
 
+                //Timing data
                 FileWriter timingCSV = new FileWriter(ResultsPath + "/" + Identifier + "/" + classifiers[ClassifierIndex].getClass().getSimpleName() + "/Predictions/" + dataTrain.relationName() + "/timing" + Resample + ".csv");
                 timingCSV.append("Classifier,Dataset,Resample,Average Classify Time,Total Classify Time,Train Time" + "\n");
-
                 String output = classifiers[ClassifierIndex].getClass().getSimpleName() + "," + dataTrain.relationName() + "," + Resample + "," +
                         tresults + "\n";
                 System.out.println(output);
@@ -165,62 +153,35 @@ public class NewRunner {
                 timingCSV.flush();
                 timingCSV.close();
 
+                //Test fold data
                 cresults.setClassifierName(classifiers[ClassifierIndex].getClass().getSimpleName());
                 cresults.setDatasetName(dataTrain.relationName());
                 cresults.setSplit("test");
                 cresults.writeFullResultsToFile(ResultsPath + "/" + Identifier + "/" + classifiers[ClassifierIndex].getClass().getSimpleName() + "/Predictions/" + dataTrain.relationName() + "/testFold" + Resample + ".csv");
 
+                //Train fold data
                 trainResults.setClassifierName(classifiers[ClassifierIndex].getClass().getSimpleName());
                 trainResults.setDatasetName(dataTrain.relationName());
                 trainResults.setSplit("train");
                 trainResults.writeFullResultsToFile(ResultsPath + "/" + Identifier + "/" + classifiers[ClassifierIndex].getClass().getSimpleName() + "/Predictions/" + dataTrain.relationName() + "/trainFold" + Resample + ".csv");
 
             } catch (Exception e) {
-                System.out.println("Something went wrong :( " + dataTrain.relationName() + " - " + classifiers[ClassifierIndex].getClass().getSimpleName());
+                System.out.println("Something went wrong " + dataTrain.relationName() + " - " + classifiers[ClassifierIndex].getClass().getSimpleName());
                 e.printStackTrace();
             }
         }
     }
 
-    public static Instances loadData(String directoryPath, DatasetType type) {
-        Instances dataset = null;
-        FileReader reader;
-        String filePath = null;
-
-        File dir = new File(directoryPath);
-        File[] files = dir.listFiles();
-
-        for (File file : files) {
-            if (file.getName().endsWith("_" + type.name() + ".arff")) {
-                filePath = file.getPath();
-            }
-        }
-
-        try
-        {
-            reader = new FileReader(filePath);
-            dataset = new Instances(reader);
-            dataset.setClassIndex(dataset.numAttributes() - 1);
-        } catch (Exception e)
-        {
-            System.out.println("Exception: " + e);
-        }
-        return dataset;
-    }
-
 
     public static Classifier[] createClassifierArray() {
         Classifier[] classifiers = new Classifier[NumClassifiers];
-
         classifiers[0] = new IBk();
         classifiers[1] = new NaiveBayes();
         classifiers[2] = new DTW1NN();
-
         classifiers[3] = new FastDTW();
 
         FastDTW_1NN dtw_1NN = new FastDTW_1NN();
         dtw_1NN.setMaxNoThreads(NumThreads);
-        //dtw_1NN.setK(23);
         classifiers[4] = dtw_1NN;
 
         classifiers[5] = new ProximityForestWrapper();
@@ -245,12 +206,6 @@ public class NewRunner {
         classifiers[22] = new TSBF();
         classifiers[23] = new LPS();
         classifiers[24] = new RotationForest();
-
-        //Replace this with a list of strings, and then use setclassifier method to get the classifier,
-        //within the timing experiment class. ClassifierLists.
-
         return classifiers;
     }
-
-
 }

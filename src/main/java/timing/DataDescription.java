@@ -1,3 +1,6 @@
+/**
+ * This class is used for generating statistics about the datasets for evaluation.
+ */
 package timing;
 
 import experiments.data.DatasetLists;
@@ -15,8 +18,8 @@ public class DataDescription {
         Instances[] tests  = new Instances[datasets.length];
 
         for (int d = 0; d < datasets.length; d++) {
-            trains[d] = WekaTools.loadClassificationData(dataDir + "/" + datasets[d] + "/" + datasets[d] + "_TRAIN.arff");
-            tests[d] = WekaTools.loadClassificationData(dataDir + "/" + datasets[d] + "/" + datasets[d] + "_TEST.arff");
+            trains[d] = WekaTools.loadData(dataDir + "/" + datasets[d], TimingRunner.DatasetType.TRAIN);
+            tests[d] = WekaTools.loadData(dataDir + "/" + datasets[d], TimingRunner.DatasetType.TEST);
         }
 
         System.out.println("Name,Num Att,Num Train,Num Test,Num Classes,Class Distribution");

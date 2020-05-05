@@ -1,28 +1,24 @@
+/**
+ * This class is primarily for testing other classes as command line arguments are passed in as on the HPC.
+ */
+
 package timing;
 
 import experiments.data.DatasetLists;
 
 public class QuickRunner {
-
-
     public static void main(String[] args) throws Exception {
-
-        postProcessHiveCote();
+        //postProcessHiveCote();
         //dtwKnnTesting();
         //DTWTrainingTesting();
-
     }
 
     private static void DTWTrainingTesting() throws Exception {
         String[] datasets = DatasetLists.tscProblems85;
         boolean skip = true;
         for (int i = 0; i < datasets.length; i++) {
-        //for (int i = datasets.length-1; i > 0; i--) {
+
             //Allows us to resume at a given dataset.
-
-            //FordB
-            //HandOutlines
-
             if (datasets[i] == "Haptics") {
                 skip = false;
             }
@@ -36,8 +32,6 @@ public class QuickRunner {
                 DTWTrainingExperiments.main(args);
             }
         }
-
-
     }
 
     private static void dtwKnnTesting() {
@@ -60,26 +54,16 @@ public class QuickRunner {
         for (String dataset : datasets) {
             runnerArgs[3] = DataPath + dataset;
             try {
-                NewRunner.main(runnerArgs);
+                TimingRunner.main(runnerArgs);
             } catch (Exception e) {
                 System.out.println("Error on dataset: " + dataset);
             }
         }
     }
 
-    //KNN better (K=23) for:            1       23
-    //DistalPhalanxOutlineCorrect       0.717   0.746
-    //DistalPhalanxTW                   0.589   0.626
-    //Earthquakes                       0.719   0.726
-    //FordA                             0.554   0.576
-    //FordB                             0.619   0.622
-
-    //Tested alphabetically up to and including Ham.
-
-
     private static void postProcessHiveCote() {
         String Identifier = "20200305";
-        String Resample = "5";
+        String Resample = "10";
         String ClassifierIndex = "25";
         String DataPath = "data/Univariate_arff/";
         String ResultsPath = "results";
@@ -97,11 +81,10 @@ public class QuickRunner {
         for (String dataset : datasets) {
             runnerArgs[3] = DataPath + dataset;
             try {
-                NewRunner.main(runnerArgs);
+                TimingRunner.main(runnerArgs);
             } catch (Exception e) {
                 System.out.println("Error on dataset: " + dataset);
             }
         }
     }
-
 }

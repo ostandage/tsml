@@ -12,6 +12,13 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+
+/**
+ * Elements of this class have been adapted for the project, specifically making classifyInstance threaded and capable
+ * of calculating k nearest neighbours. Comments have been added to show changes.
+ */
+
 package timing;
 import fileIO.OutFile;
 
@@ -39,8 +46,12 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     private int trainSize;
     private int bestWarp;
     private int maxWindowSize;
+
+    /** Project Added Code **/
     private int maxNoThreads = 1;
     private int k = 1;
+    /** END **/
+
     DTW_DistanceBasic dtw;
     HashMap<Integer,Double> distances;
     double maxR=1;
@@ -65,23 +76,16 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     } 
     public void setFindTrainAccuracyEstimate(boolean setCV){
         if(setCV==true)
-            throw new UnsupportedOperationException("Doing a top level CV is not yet possible for FastDTW_1NN. It cross validates to optimize, so could store those, but will be biased"); //To change body of generated methods, choose Tools | Templates.
-//This method doe
+            throw new UnsupportedOperationException("Doing a top level CV is not yet possible for FastDTW_1NN. It cross validates to optimize, so could store those, but will be biased");
     }
     public int getK() {return k;}
-     
-    
-//Think this always does para search?
-//    @Override
-//    public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
-    
+
     @Override
     public ClassifierResults getTrainResults(){
-//Temporary : copy stuff into res.acc here
         return res;
     }      
     @Override
-    public String getParas() { //This is redundant really.
+    public String getParas() {
         return getParameters();
     }
 
@@ -106,7 +110,6 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         result+=",BestWarpPercent,"+bestWarp+"AllAccs,";
        for(double d:accuracy)
             result+=","+d;
-        
         return result;
     }
      
@@ -212,11 +215,16 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     }
     @Override
     public double classifyInstance(Instance d){
+        /** A large amount of this method has been changed for the project. The original logic is only used when both
+         *  k and maxNoThreads are 1.
+         */
+
         int index = 0;
 
         if (k == 1) {
             //if default params, run original method.
             if (maxNoThreads == 1) {
+                /** Original Code **/
                 double minSoFar = Double.MAX_VALUE;
                 double dist;
                 for (int i = 0; i < train.numInstances(); i++) {
@@ -226,14 +234,13 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                         index = i;
                     }
                 }
+                /** End **/
             } else {
-//          split up the instances into x number of batches and then process each batch on a core.
-
                 ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
                 int intervalSize = train.numInstances() / maxNoThreads;
-
                 InstanceDistance closestInstance = new InstanceDistance(Double.MAX_VALUE, -1);
 
+                //Split up the data and start the threads.
                 for (int t = 0; t < maxNoThreads; t++) {
                     if (t == maxNoThreads - 1) {
                         //Overspill at end due to integer division.
@@ -244,6 +251,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                     classifyThreads[t].start();
                 }
 
+                //Wait for all threads to finish before getting the closest index.
                 for (int t = 0; t < maxNoThreads; t++) {
                     try {
                         classifyThreads[t].join();
@@ -255,23 +263,20 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             }
         }
         else {
-            //for KNN:
-            //have an array of InstanceDistance, and have a store of the max val. If the next node is less than max,
-            //remove the max and replace with if the array is full, else just add it.
-
             if (k < train.numInstances()) {
                 k = train.numInstances();
             }
 
+            //Predictions are stored in a sorted map, which sorts by distance.
             SortedMap<Double, Integer> predictions = Collections.synchronizedSortedMap(new TreeMap<Double, Integer>());
             predictions.put(Double.MAX_VALUE, -1);
 
             ClassifyThread[] classifyThreads = new ClassifyThread[maxNoThreads];
             int intervalSize = train.numInstances() / maxNoThreads;
 
+            //Create threads as above and wait for them to finish.
             for (int t = 0; t < maxNoThreads; t++) {
                 if (t == maxNoThreads - 1) {
-                    //Overspill at end due to integer division.
                     classifyThreads[t] = new ClassifyThread(d, t * intervalSize, train.numInstances(), predictions);
                 } else {
                     classifyThreads[t] = new ClassifyThread(d, t * intervalSize, (t + 1) * intervalSize, predictions);
@@ -287,12 +292,14 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                 }
             }
 
+            //Calculate the frequency of each class value in the nearest neighbours.
             //<CV,count>
             HashMap<Double, Integer> counts = new HashMap<>();
             Collection<Integer> closestIndexes = predictions.values();
             Integer[] closestIndexesArr = new Integer[closestIndexes.size()];
             closestIndexesArr = closestIndexes.toArray(closestIndexesArr);
             for (int nk = 0; nk < k; nk++) {
+                //Don't care about the last neighbour as we added max value element.
                 if (nk == closestIndexesArr.length-1) {
                     break;
                 }
@@ -313,13 +320,16 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                     maxCountCV.set(k);
                 }
             });
-
+            //Returns the most voted class value.
             return maxCountCV.get();
         }
 
         return train.instance(index).classValue();
     }
 
+    /**
+     * Small class added to hold the distance of a neighbour for the threads.
+     */
     private class InstanceDistance {
         private double distance;
         private int index;
@@ -330,11 +340,16 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
         }
     }
 
+    /**
+     * Thread class to perform the classification.
+     */
     private class ClassifyThread extends Thread {
         private Instance d;
         private int start;
         private int end;
+        //KNN
         private SortedMap<Double, Integer> predictions;
+        //1NN
         private InstanceDistance closestInstance;
 
         public ClassifyThread(Instance d, int start, int end, InstanceDistance closestInstance) {
@@ -361,14 +376,9 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             temp.setR(dtw.getR());
 
             for (int i = start; i < end; i++) {
-
                 if (k == 1) {
+                    //Calculate distance to neighbour and then update the nearest instance object if its closer.
                     double dist = temp.distance(train.instance(i), d, closestInstance.distance);
-
-//                    if (dist == 0.0) {
-//                        System.out.println("Dist is 0.0");
-//                    }
-
                     if (dist <= closestInstance.distance) {
                         synchronized (closestInstance) {
                             closestInstance.distance = dist;
@@ -377,18 +387,13 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
                     }
                 }
                 else {
+                    //Calculate distance to neighbour and then add to map if its closer.
                     double dist = temp.distance(train.instance(i), d, predictions.firstKey());
-
-//                    if (dist == 0.0) {
-//                        System.out.println("Dist is 0.0");
-//                    }
-
                     if (dist <= predictions.firstKey()) {
                         synchronized (predictions) {
                             predictions.put(dist, i);
                         }
                     }
-
                 }
             }
         }

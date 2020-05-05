@@ -1,3 +1,7 @@
+/**
+ * This class is used to generate CSV files containing statistics of classifiers across multiple datasets. The class can
+ * load a single fold or calculate the mean average of the data across multiple folds.
+ */
 package timing;
 
 import java.io.*;
@@ -10,27 +14,25 @@ public class DataReader {
     private ArrayList<DataFile> dataFiles;
     private SortedSet<String> datasets;
     private SortedSet<String> classifiers;
-    private int numFolds;
 
     public static void main(String args[]) throws Exception {
-
+        //Load fold0 and write stats.
         DataReader d = new DataReader();
-//        d.loadSingleFold("results/20200305", NewRunner.DatasetType.TEST, 0);
-//        d.writeFoldCSV(Stat.ACCURACY, "results/20200305", 0);
-//        d.writeFoldCSV(Stat.AVG_CLASSIFY_TIME, "results/20200305", 0);
-//        d.writeFoldCSV(Stat.TOTAL_CLASSIFY_TIME, "results/20200305", 0);
-//        d.writeFoldCSV(Stat.TRAIN_TIME, "results/20200305", 0);
+        d.loadSingleFold("results/20200305", TimingRunner.DatasetType.TEST, 0);
+        d.writeFoldCSV(Stat.ACCURACY, "results/20200305", 0);
+        d.writeFoldCSV(Stat.AVG_CLASSIFY_TIME, "results/20200305", 0);
+        d.writeFoldCSV(Stat.TOTAL_CLASSIFY_TIME, "results/20200305", 0);
+        d.writeFoldCSV(Stat.TRAIN_TIME, "results/20200305", 0);
 
-        d.loadMultiFolds("results/20200305", NewRunner.DatasetType.TEST, 5);
-        d.writeFoldsAverageCSV(Stat.ACCURACY, "results/20200305", 5);
-        d.writeFoldsAverageCSV(Stat.AVG_CLASSIFY_TIME, "results/20200305", 5);
-        d.writeFoldsAverageCSV(Stat.TOTAL_CLASSIFY_TIME, "results/20200305", 5);
-        d.writeFoldsAverageCSV(Stat.TRAIN_TIME, "results/20200305", 5);
-
-
+        //Load 10 folds and write average stats.
+        DataReader d2 = new DataReader();
+        d2.loadMultiFolds("results/20200305", TimingRunner.DatasetType.TEST, 10);
+        d2.writeFoldsAverageCSV(Stat.ACCURACY, "results/20200305", 10);
+        d2.writeFoldsAverageCSV(Stat.AVG_CLASSIFY_TIME, "results/20200305", 10);
+        d2.writeFoldsAverageCSV(Stat.TOTAL_CLASSIFY_TIME, "results/20200305", 10);
+        d2.writeFoldsAverageCSV(Stat.TRAIN_TIME, "results/20200305", 10);
 
         System.out.println("Done");
-
     }
 
     public DataReader() {
@@ -46,7 +48,7 @@ public class DataReader {
         TRAIN_TIME
     }
 
-    public void loadSingleFold(String resultsPath, NewRunner.DatasetType type, int foldNo) {
+    public void loadSingleFold(String resultsPath, TimingRunner.DatasetType type, int foldNo) {
         File topDir = new File(resultsPath);
         String[] classifiers = topDir.list();
 
@@ -106,18 +108,13 @@ public class DataReader {
 
             //write datasets
             for (String dataset : this.datasets) {
-
-                boolean found = false;
-
                 matrix.append(dataset);
-
                 SortedSet<DataFile> res = new TreeSet<>();
                 for (DataFile d : this.dataFiles) {
                     if ((d.fold == foldNo) && (d.dataset.compareTo(dataset) == 0)) {
                         res.add(d);
                     }
                 }
-
 
                 int count = 0;
                 Object[] classif = classifiers.toArray();
@@ -145,22 +142,18 @@ public class DataReader {
                         }
                         count++;
                     }
-
                     matrix.append("," + Double.toString(value));
-
                 }
                 matrix.append("\n");
                 matrix.flush();
             }
-
             matrix.close();
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void loadMultiFolds(String resultsPath, NewRunner.DatasetType type, int numFolds) {
+    public void loadMultiFolds(String resultsPath, TimingRunner.DatasetType type, int numFolds) {
         for (int fold = 0; fold < numFolds; fold++) {
             loadSingleFold(resultsPath, type, fold);
         }
@@ -179,6 +172,7 @@ public class DataReader {
             }
             else {
                 boolean added = false;
+                //Need to make sure we don't add a datapoint twice.
                 for (int dp = 0; dp < points.size(); dp++) {
                     if ((dataFiles.get(dp).dataset.compareTo(toAdd.dataset) == 0) && (dataFiles.get(dp).classifier.compareTo(toAdd.classifier) == 0)) {
                         points.get(dp).dataFiles.add(toAdd);
@@ -246,21 +240,20 @@ public class DataReader {
                         }
                         count++;
                     }
-
                     matrix.append("," + Double.toString(value));
-
                 }
                 matrix.append("\n");
                 matrix.flush();
             }
-
             matrix.close();
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Represents a single classifier-dataset combination. Holds data from the standard fold file and new timing file.
+     */
     public class DataFile implements Comparable {
         String classifier;
         String dataset;
@@ -286,6 +279,9 @@ public class DataReader {
         }
     }
 
+    /**
+     * Represents a single data cell on an output matrix set. Holds a datafile for each fold.
+     */
     public class DataPoint implements Comparable{
         String classifier;
         String dataset;
@@ -305,7 +301,7 @@ public class DataReader {
             double total = 0;
             for (DataFile d : dataFiles) {
                 if (d.accuracy == 0.0) {
-                    //throw new Exception("Accuracy is 0.");
+                    throw new Exception("Accuracy is 0.");
                 } else {
                     total += d.accuracy;
                 }

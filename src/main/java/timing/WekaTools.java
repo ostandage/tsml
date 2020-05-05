@@ -1,20 +1,22 @@
+/**
+ * This class contains various helper methods related to Weka.
+ */
+
 package timing;
 
 import weka.classifiers.Classifier;
 import weka.core.Instance;
 import weka.core.Instances;
-
+import java.io.File;
 import java.io.FileReader;
 import java.util.Iterator;
 import java.util.Random;
-
 
 public class WekaTools {
 
     public static void main(String args[]) {
         int[] actual    = {0,0,1,1,1,0,0,1,1,1};
         int[] predicted = {0,1,1,1,1,1,1,1,1,1};
-
         int[][] conf = confusionMatrix(predicted, actual);
 
         printConfusionMatrix(conf);
@@ -80,24 +82,6 @@ public class WekaTools {
         return accuracy;
     }
 
-    public static Instances loadClassificationData(String path) {
-        Instances train;
-
-        FileReader reader;
-        try
-        {
-            reader = new FileReader(path);
-            train = new Instances(reader);
-            train.setClassIndex(train.numAttributes() - 1);
-            return train;
-
-        } catch (Exception e)
-        {
-            System.out.println("Exception: " + e);
-        }
-        return null;
-    }
-
     public static Instances[] splitData(Instances all, double proportion) {
         Random r = new Random();
         for (int i = 0; i < 100; i++) {
@@ -137,5 +121,31 @@ public class WekaTools {
             output += d + ", ";
         }
         return output + "]";
+    }
+
+    public static Instances loadData(String directoryPath, TimingRunner.DatasetType type) {
+        Instances dataset = null;
+        FileReader reader;
+        String filePath = null;
+
+        File dir = new File(directoryPath);
+        File[] files = dir.listFiles();
+
+        for (File file : files) {
+            if (file.getName().endsWith("_" + type.name() + ".arff")) {
+                filePath = file.getPath();
+            }
+        }
+
+        try
+        {
+            reader = new FileReader(filePath);
+            dataset = new Instances(reader);
+            dataset.setClassIndex(dataset.numAttributes() - 1);
+        } catch (Exception e)
+        {
+            System.out.println("Exception: " + e);
+        }
+        return dataset;
     }
 }
