@@ -22,7 +22,7 @@ public class ReducedTrainDataTesting {
 
     public static void main(String[] args) throws Exception {
 
-        DataPath = "data/Univariate_arff/Beef";
+        DataPath = "data/Univariate_arff/GunPoint";
         OutputPath = "results/";
 
         if (args.length > 0) {

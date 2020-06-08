@@ -9,7 +9,7 @@ import experiments.data.DatasetLists;
 public class QuickRunner {
     public static void main(String[] args) throws Exception {
         //postProcessHiveCote();
-        //dtwKnnTesting();
+        dtwKnnTesting();
         //DTWTrainingTesting();
     }
 
@@ -49,16 +49,23 @@ public class QuickRunner {
         runnerArgs[4] = ResultsPath;
         runnerArgs[5] = NumThreads;
 
-        String[] datasets = DatasetLists.tscProblems85;
-
-        for (String dataset : datasets) {
-            runnerArgs[3] = DataPath + dataset;
-            try {
-                TimingRunner.main(runnerArgs);
-            } catch (Exception e) {
-                System.out.println("Error on dataset: " + dataset);
-            }
+//        String[] datasets = DatasetLists.tscProblems85;
+//
+//        for (String dataset : datasets) {
+//            //runnerArgs[3] = DataPath + dataset;
+//            try {
+//                TimingRunner.main(runnerArgs);
+//            } catch (Exception e) {
+//                System.out.println("Error on dataset: " + dataset);
+//            }
+//        }
+        runnerArgs[3] = DataPath + "GunPoint";
+        try {
+            TimingRunner.main(runnerArgs);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
     }
 
     private static void postProcessHiveCote() {

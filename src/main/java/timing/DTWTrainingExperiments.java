@@ -19,7 +19,7 @@ public class DTWTrainingExperiments {
 
     public static void main(String[] args) throws Exception {
 
-        String dataset = "ArrowHead";
+        String dataset = "GunPoint";
         String datapath = "data/Univariate_arff/" + dataset;
         String resultsPath = "results/DTWTraining/" + dataset + ".csv";
 
